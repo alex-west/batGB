@@ -17,17 +17,17 @@ SECTION "ROM Bank $004", ROMX[$4000], BANK[$4]
     dw $8A00, res_4_5C7B
     dw $8A00, res_4_6120
 
-res_4_402C: incbin "../packed/res_0x01002C.bin"
-res_4_406D: incbin "../packed/res_0x01006D.bin"
-res_4_437C: incbin "../packed/res_0x01037C.bin"
-res_4_4705: incbin "../packed/res_0x010705.bin"
-res_4_497B: incbin "../packed/res_0x01097B.bin"
-res_4_4E8B: incbin "../packed/res_0x010E8B.bin"
-res_4_5100: incbin "../packed/res_0x011100.bin"
-res_4_5561: incbin "../packed/res_0x011561.bin"
-res_4_58C4: incbin "../packed/res_0x0118C4.bin"
-res_4_5C7B: incbin "../packed/res_0x011C7B.bin"
-res_4_6120: incbin "../packed/res_0x012120.bin"
+res_4_402C: incbin "../packed/blank.bin"
+res_4_406D: incbin "../packed/spr_joker.bin"
+res_4_437C: incbin "../packed/spr_batwing.bin"
+res_4_4705: incbin "../packed/spr_batwingBossA.bin"
+res_4_497B: incbin "../packed/spr_batwingEnemiesA.bin"
+res_4_4E8B: incbin "../packed/spr_batwingBossB.bin"
+res_4_5100: incbin "../packed/spr_batwingEnemiesB.bin"
+res_4_5561: incbin "../packed/spr_streetsEnemies.bin"
+res_4_58C4: incbin "../packed/spr_factoryEnemies.bin"
+res_4_5C7B: incbin "../packed/spr_museumEnemies.bin"
+res_4_6120: incbin "../packed/spr_cathedralEnemies.bin"
 
 bank4_freespace:
 ; EoF

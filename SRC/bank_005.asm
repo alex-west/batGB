@@ -36,22 +36,22 @@ SECTION "ROM Bank $005", ROMX[$4000], BANK[$5]
     dw $9C00, res_5_6E03
     dw $8800, res_5_6ED2
 
-res_5_405C: incbin "../packed/res_0x01405C.bin"
-res_5_41A7: incbin "../packed/res_0x0141A7.bin"
-res_5_46CD: incbin "../packed/res_0x0146CD.bin"
-res_5_4BD3: incbin "../packed/res_0x014BD3.bin"
-res_5_4CA7: incbin "../packed/res_0x014CA7.bin"
-res_5_51D1: incbin "../packed/res_0x0151D1.bin"
-res_5_53FF: incbin "../packed/res_0x0153FF.bin"
-res_5_5519: incbin "../packed/res_0x015519.bin"
-res_5_55FF: incbin "../packed/res_0x0155FF.bin"
-res_5_5B8E: incbin "../packed/res_0x015B8E.bin"
-res_5_6241: incbin "../packed/res_0x016241.bin"
-res_5_638B: incbin "../packed/res_0x01638B.bin"
-res_5_64C3: incbin "../packed/res_0x0164C3.bin"
-res_5_6A37: incbin "../packed/res_0x016A37.bin"
-res_5_6E03: incbin "../packed/res_0x016E03.bin"
-res_5_6ED2: incbin "../packed/res_0x016ED2.bin"
+res_5_405C: incbin "../packed/map_cutsceneA.bin"
+res_5_41A7: incbin "../packed/bg_cutsceneMonitorA.bin"
+res_5_46CD: incbin "../packed/bg_cutsceneMonitorB.bin"
+res_5_4BD3: incbin "../packed/map_cutsceneB.bin"
+res_5_4CA7: incbin "../packed/bg_cutsceneJokerA.bin"
+res_5_51D1: incbin "../packed/bg_cutsceneJokerB.bin"
+res_5_53FF: incbin "../packed/map_cutsceneC1.bin"
+res_5_5519: incbin "../packed/map_cutsceneC2.bin"
+res_5_55FF: incbin "../packed/bg_cutsceneBatmobileA.bin"
+res_5_5B8E: incbin "../packed/bg_cutsceneBatmobileB.bin"
+res_5_6241: incbin "../packed/map_cutsceneD.bin"
+res_5_638B: incbin "../packed/map_ending.bin"
+res_5_64C3: incbin "../packed/bg_cutsceneJokerDeadA.bin"
+res_5_6A37: incbin "../packed/bg_cutsceneJokerDeadB.bin"
+res_5_6E03: incbin "../packed/map_creditsBatman.bin"
+res_5_6ED2: incbin "../packed/bg_creditsBatman.bin"
 
 bank5_freespace:
 ; EoF
