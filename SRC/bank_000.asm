@@ -2479,42 +2479,53 @@ loadProc_B: ;{ 00:0FC1
 ret ;}
 
 
-Call_000_100e:
+; Draw Metasprite?
+;  A (saved to $83) = Attributes
+;  BC = YX offset
+;  E = Sprite number
+drawMetasprite: ; 00:100E
+    ; Save attributes to temp
     ldh [$83], a
+    ; Load pointer to DE
     ld d, $00
     sla e
     rl d
-    ld hl, $512a
+    ld hl, metaspritePointerTable ; $512A
     add hl, de
     ld a, [hl+]
     ld e, a
     ld d, [hl]
+    ; Load information byte of metasprite
     ld a, [de]
     inc de
     ld h, a
+    ; Save number of sprites in the metasprite
     and $0f
     ldh [$82], a
+    ; Check if metasprite has an alternate flipped version
     bit 4, h
-    jr z, jr_000_1040
+    jr z, .endIf_A
+        ; Check if actor is horizontally flipped
+        ldh a, [$83]
+        bit OAMB_XFLIP, a
+        jr z, .endIf_A
+            ; Mask out X flip
+            and ~OAMF_XFLIP ; %11011111
+            ldh [$83], a
+            ; DE += num_sprites*4
+            ldh a, [$82]
+            ld l, a
+            sla l
+            sla l
+            ld a, e
+            add l
+            ld e, a
+            ld a, d
+            adc $00
+            ld d, a
+    .endIf_A:
 
-    ldh a, [$83]
-    bit 5, a
-    jr z, jr_000_1040
-
-    and $df
-    ldh [$83], a
-    ldh a, [$82]
-    ld l, a
-    sla l
-    sla l
-    ld a, e
-    add l
-    ld e, a
-    ld a, d
-    adc $00
-    ld d, a
-
-jr_000_1040:
+    ; Flicker oscillator?
     ldh a, [$fa]
     bit 7, a
     jr nz, jr_000_1077
@@ -2523,44 +2534,47 @@ jr_000_1040:
     ld l, a
     ld h, $c0
 
-jr_000_104c:
-    ld a, l
-    cp $a0
-    jr nc, jr_000_1071
-
-    ld a, [de]
-    inc de
-    add b
-    ld [hl+], a
-    ld a, [de]
-    inc de
-    add c
-    ld [hl+], a
-    ld a, [de]
-    inc de
-    ld [hl+], a
-    push bc
-    ldh a, [$83]
-    ld b, a
-    ld a, [de]
-    inc de
-    xor b
-    pop bc
-    ld [hl+], a
-    ldh a, [$82]
-    dec a
-    ldh [$82], a
+    jr_000_104c:
+        ld a, l
+        cp $a0
+            jr nc, jr_000_1071
+        ; Load Y
+        ld a, [de]
+        inc de
+        add b
+        ld [hl+], a
+        ; Load X
+        ld a, [de]
+        inc de
+        add c
+        ld [hl+], a
+        ; Load tile index
+        ld a, [de]
+        inc de
+        ld [hl+], a
+        ; Load attributes
+        push bc
+            ldh a, [$83]
+            ld b, a
+            ld a, [de]
+            inc de
+            xor b
+        pop bc
+        ld [hl+], a
+        
+        ldh a, [$82]
+        dec a
+        ldh [$82], a
     jr nz, jr_000_104c
 
     ld a, l
     ld [$c0a0], a
-    ret
-
+ret
 
 jr_000_1071:
     ld a, $a0
     ld [$c0a0], a
-    ret
+ret
 
 
 jr_000_1077:
@@ -2569,48 +2583,46 @@ jr_000_1077:
     ld l, a
     ld h, $c0
 
-jr_000_107f:
-    ld a, l
-    cp $a0
-    jr nc, jr_000_10aa
-
-    ld a, [de]
-    inc de
-    add b
-    ld [hl+], a
-    ld a, [de]
-    inc de
-    add c
-    ld [hl+], a
-    ld a, [de]
-    inc de
-    ld [hl+], a
-    push bc
-    ldh a, [$83]
-    ld b, a
-    ld a, [de]
-    inc de
-    xor b
-    pop bc
-    ld [hl+], a
-    ld a, l
-    sub $08
-    ld l, a
-    ldh a, [$82]
-    dec a
-    ldh [$82], a
+    jr_000_107f:
+        ld a, l
+        cp $a0
+            jr nc, jr_000_10aa
+        ld a, [de]
+        inc de
+        add b
+        ld [hl+], a
+        ld a, [de]
+        inc de
+        add c
+        ld [hl+], a
+        ld a, [de]
+        inc de
+        ld [hl+], a
+        push bc
+        ldh a, [$83]
+        ld b, a
+        ld a, [de]
+        inc de
+        xor b
+        pop bc
+        ld [hl+], a
+        ld a, l
+        sub $08
+        ld l, a
+        ldh a, [$82]
+        dec a
+        ldh [$82], a
     jr nz, jr_000_107f
 
     ld a, l
     add $04
     ld [$c0a0], a
-    ret
-
+ret
 
 jr_000_10aa:
     xor a
     ld [$c0a0], a
-    ret
+ret
 
 
 Call_000_10af:
@@ -2826,7 +2838,7 @@ Call_000_11a8: ; Standard level loading routine
     call Call_000_281a
     call $4dd9
     call Call_000_18c9
-    call $5b87
+    call Call_001_5B87
     ld a, $00
     ld [$c0c9], a
     ld a, [$c0c2]
@@ -2914,7 +2926,7 @@ ret
 
 devMessage_A:; 00:1260 - Developer Message
 ; Shift-JIS Encoded
-;  ｺﾚｶﾗﾓ SUNSOFT ｦ ﾖﾛｼｸﾈ!!	
+;  ｺﾚｶﾗﾓ SUNSOFT ｦ ﾖﾛｼｸﾈ!!  
 ;
 ; Translation per TCRF
 ;  Please continue to give your 
@@ -3098,7 +3110,7 @@ Call_000_1397:
     ldh a, [$91]
     ld c, a
     xor a
-    call Call_000_100e
+    call drawMetasprite
 ret
 
 
@@ -3209,7 +3221,7 @@ resList_vsJoker: ; 00:1480
 
 devMessage_B: ; 00:1487 - Developer Message
 ; Shift-JIS Encoded
-;  ｷｮｳﾓｹﾞﾝｷﾀﾞ!! ｺﾝﾋﾞｶﾞｶｶﾙ??	
+;  ｷｮｳﾓｹﾞﾝｷﾀﾞ!! ｺﾝﾋﾞｶﾞｶｶﾙ?? 
 ;
 ; Translation per TCRF:
 ;  I'm feeling fine today!! 
@@ -3483,7 +3495,7 @@ jr_000_1608:
 
 devMessage_C: ; 00:160E - Developer Message
 ; Shift-JIS Encoded
-;  ｺﾚｺﾚ!! ﾋﾄﾉPRGRAMｦﾉｿﾞｸﾃﾞﾜﾅｲ !!	
+;  ｺﾚｺﾚ!! ﾋﾄﾉPRGRAMｦﾉｿﾞｸﾃﾞﾜﾅｲ !!    
 ;
 ; Translation per TCRF
 ;  Come over here!! 
@@ -3667,7 +3679,7 @@ jr_000_171f:
     ld b, a
     ld c, $20
     xor a
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -4617,7 +4629,7 @@ jr_000_1d03:
     or d
     push de
     push bc
-    call Call_000_100e
+    call drawMetasprite
     pop bc
     call Call_000_2453
     pop de
@@ -5255,7 +5267,7 @@ jr_000_22f3:
     ld a, [$c34e]
     and $20
     or d
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -5291,7 +5303,7 @@ jr_000_2377:
     ld a, [$c347]
     ld c, a
     xor a
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -5420,7 +5432,7 @@ jr_000_2439:
     ld a, [$c0cf]
     ld c, a
     xor a
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -5638,7 +5650,7 @@ jr_000_25fc:
     ldh a, [$91]
     ld c, a
     xor a
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 gameOverText: ; 00:2607 - String list format
@@ -6798,7 +6810,7 @@ jr_000_2cc0:
     srl a
     srl a
     or d
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -6807,7 +6819,7 @@ jr_000_2cdf:
     inc hl
     ld e, [hl]
     xor a
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -6825,7 +6837,7 @@ jr_000_2ce7:
     rra
     rra
     and $20
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -6965,7 +6977,7 @@ Jump_000_2da1:
     add hl, de
     ld e, [hl]
     xor a
-    call Call_000_100e
+    call drawMetasprite
     ret
 
 
@@ -7821,7 +7833,7 @@ jr_000_3257:
     ldh a, [$9e]
     and $20
     or d
-    call Call_000_100e
+    call drawMetasprite
 
 jr_000_3272:
     ldh a, [$91]
@@ -8239,7 +8251,7 @@ jr_000_34be:
     ldh a, [$9e]
     xor $20
     and $20
-    call Call_000_100e
+    call drawMetasprite
     ld a, [$c0cd]
     add $08
     cp $20

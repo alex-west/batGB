@@ -1,4 +1,9 @@
 
+section "WRAM Bank 0", wram0[$C000]
+
+oamBuffer: ds $A0 ; $C000-C09F
+; $C0A0 - oamBufferIndex
+
 ; $C0B1 ; Current Cutscene
 
 currentLevel = $C0C2 ; Level Number
