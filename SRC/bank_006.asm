@@ -144,6 +144,7 @@ cutsceneLoad: ;{ 06:6806
     call $0ed2
     call cutscene_loadResources
     call $0f69
+    ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a

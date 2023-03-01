@@ -33,7 +33,7 @@ SECTION "ROM Bank $000 pt2", ROM0[$0100]
 
 Boot::
     nop
-    jp Jump_000_0150
+    jp coldBoot
 
 HeaderLogo:: NINTENDO_LOGO
 HeaderTitle:: db "BATMAN", $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
@@ -48,27 +48,29 @@ HeaderMaskROMVersion:: db $00
 HeaderComplementCheck:: db $76
 HeaderGlobalChecksum:: db $95, $3e
 
-Jump_000_0150:
+coldBoot: ; 00:0150
     di
+    
+    ; Clear HRAM
     ld b, $7f
     ld hl, $ff80
     xor a
-
-    jr_000_0157:
+    .clearHramLoop:
         ld [hl+], a
         dec b
-    jr nz, jr_000_0157
+    jr nz, .clearHramLoop
 
+    ; Clear WRAM
     ld bc, $2000
     ld hl, $c000
-
-    jr_000_0161:
+    .clearWramLoop:
         xor a
         ld [hl+], a
+        ; Check if BC == 0
         dec bc
         ld a, b
         or c
-    jr nz, jr_000_0161
+    jr nz, .clearWramLoop
 
     xor a
     ld [$c0e3], a
@@ -76,7 +78,7 @@ Jump_000_0150:
     ld [$c0e5], a
     ld [$c0b5], a
 
-Jump_000_0175:
+Jump_000_0175: ; 00:0175
     di
         call disableLCD
         xor a
@@ -87,9 +89,12 @@ Jump_000_0175:
     ld [$c0dc], a
     ld sp, $cbff
     call load_OAMroutine
+
+    ; Initialize loaded bank
     ld a, $01
     ldh [$fd], a
     ld [$2000], a
+
     call Call_000_304b
 
 Jump_000_0194:
@@ -121,6 +126,7 @@ Jump_000_0194:
     ld [$c1a4], a
     ld a, $fe
     ld [$c1a3], a
+    ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
@@ -201,12 +207,12 @@ jr_000_0214: ;{ Some loop
 
     jr_000_0273:
         db $76 ; HALT
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0273
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0214 ;}
 
 jr_000_027e:
@@ -244,12 +250,12 @@ jr_000_027e:
 
     jr_000_02bd:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_02bd
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 
 Jump_000_02c6:
     ld hl, $cb00
@@ -398,12 +404,12 @@ jr_000_03ac:
 
     jr_000_03b1:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_03b1
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     jp Jump_000_02c6
 
 
@@ -462,12 +468,12 @@ jr_000_03f3:
 
     jr_000_0413:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0413
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 
 jr_000_041c: ;{ Some loop
     ld hl, $cb00
@@ -501,12 +507,12 @@ jr_000_041c: ;{ Some loop
 
     jr_000_045c:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_045c
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_041c ;}
 
 jr_000_0467:
@@ -515,14 +521,14 @@ jr_000_0467:
 
     jr_000_046c:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_046c
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, $01
-    ld [$c0c2], a
+    ld [currentLevel], a
     call Call_000_118d
     ld a, [$c0b5]
     and a
@@ -542,6 +548,7 @@ jr_000_0467:
     xor a
     call loadProc_A
     call clearOAM
+    ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
@@ -554,7 +561,7 @@ jr_000_0467:
     ldh [$bc], a
     ld a, $01
     ldh [$9a], a
-    ld [$c0c2], a
+    ld [currentLevel], a
     call $5fc9
     xor a
     ldh [rIF], a
@@ -580,12 +587,12 @@ jr_000_04d2: ;{
 
     jr_000_04ea:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_04ea
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_04d2 ;}
 
 ; Sound test
@@ -606,6 +613,7 @@ Jump_000_04f5: ; 00:04F5
     ldh [$9a], a
     xor a
     ld [$c1a3], a
+    ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
@@ -661,12 +669,12 @@ jr_000_054d: ;{ Sound test loop
 
     jr_000_057f:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_057f
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_054d ;}
 
 soundTest_songList: ; 00:058A
@@ -679,12 +687,12 @@ Jump_000_0595:
 
     jr_000_059a:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_059a
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 
 Jump_000_05a3:
     call disableLCD
@@ -693,7 +701,7 @@ Jump_000_05a3:
     dec a
     ldh [$b4], a
     ; Load cutscene ID for stage from table
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     and $0f
     ld e, a
     ld d, $00
@@ -776,12 +784,12 @@ jr_000_05f1:
 
     jr_000_0641:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0641
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_05f1
 
 stage_cutsceneList: ; 00:064C
@@ -795,12 +803,12 @@ jr_000_065c:
 
     jr_000_0661:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0661
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     call disableLCD
     xor a
     ldh [$b5], a
@@ -819,12 +827,12 @@ Jump_000_0673: ; Start level
     ld [$cb00], a
     ld a, $25
     call Call_000_0ed2
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     call Call_000_1405 ; Load level assets
     xor a
     ld [$c0c4], a
     ld [$c0c5], a
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $08 ; Batwing 1
         jr z, jr_000_06b7
     cp $09 ; Batwing 2
@@ -850,7 +858,7 @@ Jump_000_0673: ; Start level
         call Call_000_11a8
 
 jr_000_06c4:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $0b
     jr nz, jr_000_06d0
         ld a, $40
@@ -868,6 +876,7 @@ jr_000_06c4:
     ld [$c1a3], a
     call Call_000_3028 ; Clear music?
     call loadLevel_pickSong
+    ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
@@ -902,12 +911,12 @@ jr_000_0708: ;{ Some game loop
 
     jr_000_0723:
         db $76 ; HALT?
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0723
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0708 ;}
 
 jr_000_072e:
@@ -916,12 +925,12 @@ jr_000_072e:
 
     jr_000_0733:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0733
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, $0f
     ldh [rLYC], a
     ld a, $80
@@ -934,11 +943,10 @@ jr_000_0749: ;{ Another game loop
     res 7, [hl]
     ldh a, [$b5]
     and $0b
-    jr nz, jr_000_0781
-
+        jr nz, jr_000_0781
     ld a, [$c1a3]
     and a
-    jr z, jr_000_0781
+        jr z, jr_000_0781
 
     dec a
     ld [$c1a3], a
@@ -955,17 +963,17 @@ jr_000_0749: ;{ Another game loop
 
     jr_000_0776:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0776
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0749 ;}
 
 Jump_000_0781:
 jr_000_0781:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $04
     jr nz, jr_000_0792
         ld a, $80
@@ -989,107 +997,96 @@ jr_000_0781:
 
     jr_000_07a9:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_07a9
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 
-Jump_000_07b2:
+Jump_000_07b2: ;{ Main game loop ?
     ld hl, $cb00
     res 7, [hl]
     call Call_000_14eb
     ld a, [$c0be]
     and a
     jr nz, jr_000_0834
+        ldh a, [$b4]
+        ldh [$8c], a
+        ldh a, [$b5]
+        ldh [$8d], a
+        ld a, [$c0c4]
+        and a
+        jr nz, jr_000_07eb
+            ldh a, [$91]
+            cp $8c
+            jr c, jr_000_07eb
+                ldh a, [$98]
+                cp $09
+                jr nz, jr_000_07eb
+                    ldh a, [$97]
+                    cp $60
+                    jr nz, jr_000_07eb
+                        ld a, $10
+                        ldh [$8c], a
+                        xor a
+                        ldh [$8d], a
+                        ld a, $06
+                        ldh [$a1], a
+        jr_000_07eb:
+    
+        ld a, [currentLevel]
+        cp $04
+        jr nz, jr_000_07f8
+            ld a, $80
+            ldh [rLYC], a
+            jr jr_000_07fc
+        jr_000_07f8:
+            ld a, $0f
+            ldh [rLYC], a
+        jr_000_07fc:
+    
+        ld a, [$c0c9]
+        and a
+            jp nz, Jump_000_08bf
+    
+        ld a, [$c0c4]
+        and a
+        jr nz, jr_000_081b
+            ld a, [$c0c5]
+            bit 7, a
+            call z, Call_000_1277
+            ld a, [$c0c5]
+            bit 7, a
+            call nz, Call_000_13c3
+            jr jr_000_081e
+        jr_000_081b:
+            call Call_000_1312
+        jr_000_081e:
+    
+        call Call_000_10af
+        ldh a, [$91]
+        cp $e0
+            jp nc, Jump_000_08b5
+        cp $a0
+            jp nc, Jump_000_0845
+        ld a, [$c341]
+        and $02
+            jr nz, jr_000_0845
+    jr_000_0834:
 
-    ldh a, [$b4]
-    ldh [$8c], a
-    ldh a, [$b5]
-    ldh [$8d], a
-    ld a, [$c0c4]
-    and a
-    jr nz, jr_000_07eb
-
-    ldh a, [$91]
-    cp $8c
-    jr c, jr_000_07eb
-
-    ldh a, [$98]
-    cp $09
-    jr nz, jr_000_07eb
-
-    ldh a, [$97]
-    cp $60
-    jr nz, jr_000_07eb
-
-    ld a, $10
-    ldh [$8c], a
-    xor a
-    ldh [$8d], a
-    ld a, $06
-    ldh [$a1], a
-
-jr_000_07eb:
-    ld a, [$c0c2]
-    cp $04
-    jr nz, jr_000_07f8
-
-    ld a, $80
-    ldh [rLYC], a
-    jr jr_000_07fc
-
-jr_000_07f8:
-    ld a, $0f
-    ldh [rLYC], a
-
-jr_000_07fc:
-    ld a, [$c0c9]
-    and a
-    jp nz, Jump_000_08bf
-
-    ld a, [$c0c4]
-    and a
-    jr nz, jr_000_081b
-
-    ld a, [$c0c5]
-    bit 7, a
-    call z, Call_000_1277
-    ld a, [$c0c5]
-    bit 7, a
-    call nz, Call_000_13c3
-    jr jr_000_081e
-
-jr_000_081b:
-    call Call_000_1312
-
-jr_000_081e:
-    call Call_000_10af
-    ldh a, [$91]
-    cp $e0
-    jp nc, Jump_000_08b5
-
-    cp $a0
-    jp nc, Jump_000_0845
-
-    ld a, [$c341]
-    and $02
-    jr nz, jr_000_0845
-
-jr_000_0834:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_0839:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_0839:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_0839
 
     xor a
-    ldh [$ba], a
-    jp Jump_000_07b2
+    ldh [hVBlankDoneFlag], a
+jp Jump_000_07b2 ;}
 
 
 Jump_000_0845:
@@ -1099,12 +1096,12 @@ jr_000_0845:
 
     jr_000_084a:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_084a
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, $a2
     ld [$c0bd], a
     ld a, $00
@@ -1134,20 +1131,20 @@ jr_000_0865: ;{
 
     jr_000_088b:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_088b
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0865 ;}
 
 jr_000_0896:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     inc a
     and $0f
     ; Check level, jump to ending
-    ld [$c0c2], a
+    ld [currentLevel], a
     cp $0d
         jp z, Jump_000_0b3a
 
@@ -1158,7 +1155,7 @@ jr_000_0896:
     xor a
     ld [$c0a0], a
     call Call_000_10af
-    jp Jump_000_0595
+    jp Jump_000_0595 ; Start next level
 
 
 Jump_000_08b5:
@@ -1174,12 +1171,12 @@ Jump_000_08bf:
 
     jr_000_08c7:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_08c7
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, [$c0c4]
     and a
     jp nz, Jump_000_09c7
@@ -1201,7 +1198,7 @@ jr_000_08da:
     ld a, [$c0c5]
     bit 7, a
     call nz, Call_000_13f8
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $04
     jr nz, jr_000_0915
 
@@ -1239,14 +1236,14 @@ jr_000_0934:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_093c:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_093c:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_093c
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     jr jr_000_08da
 
 jr_000_0947:
@@ -1284,12 +1281,12 @@ jr_000_0975:
 
     jr_000_097a:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_097a
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, $12
     ld [$c0f0], a
     ld a, $01
@@ -1320,12 +1317,12 @@ jr_000_0995:
 
     jr_000_09bc:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_09bc
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     jr jr_000_0995
 
 Jump_000_09c7:
@@ -1334,12 +1331,12 @@ Jump_000_09c7:
 
     jr_000_09cc:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_09cc
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     call Call_000_1391
 
 jr_000_09d8:
@@ -1355,14 +1352,14 @@ jr_000_09d8:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_09f1:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_09f1:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_09f1
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     jr jr_000_09d8
 
 Jump_000_09fc:
@@ -1371,12 +1368,12 @@ Jump_000_09fc:
 
     jr_000_0a01:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0a01
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, $12
     ld [$c0f0], a
     ld a, $01
@@ -1409,28 +1406,28 @@ jr_000_0a1c:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_0a4e:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_0a4e:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_0a4e
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     jr jr_000_0a1c
 
 Jump_000_0a59:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_0a5e:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_0a5e:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_0a5e
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     call disableLCD
     xor a
     ldh [$b5], a
@@ -1446,6 +1443,7 @@ jr_000_0a5e:
     ; Play Game Over music
     ld a, $05
     call Call_000_308d
+    ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
@@ -1477,28 +1475,28 @@ jr_000_0aa9:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_0abf:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_0abf:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_0abf
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     jr jr_000_0aa9
 
 jr_000_0aca:
     ld hl, $cb00
     set 7, [hl]
 
-jr_000_0acf:
-    db $76
-    ldh a, [$ba]
-    and a
+    jr_000_0acf:
+        db $76
+        ldh a, [hVBlankDoneFlag]
+        and a
     jr z, jr_000_0acf
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, [$c1a3]
     and a
     jr nz, jr_000_0b14
@@ -1509,7 +1507,7 @@ jr_000_0acf:
     xor a
     ld [$c0a0], a
     call Call_000_10af
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     ld e, a
     ld d, $00
     ld hl, $0b1a
@@ -1523,13 +1521,13 @@ jr_000_0acf:
     ld [$c1a2], a
 
 jr_000_0b00:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     ld e, a
     ld d, $00
     ld hl, $0b2a
     add hl, de
     ld a, [hl]
-    ld [$c0c2], a
+    ld [currentLevel], a
     call Call_000_1190
     jp Jump_000_065c
 
@@ -1576,12 +1574,12 @@ Jump_000_0b3a:
 
     jr_000_0b42:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0b42
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     call disableLCD
     call Call_000_3028
     ; Play ending music
@@ -1632,12 +1630,12 @@ jr_000_0b76: ;{ Ending cutscene loop
 
     jr_000_0ba0:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0ba0
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0b76 ;}
 
 jr_000_0bab:
@@ -1646,12 +1644,12 @@ jr_000_0bab:
 
     jr_000_0bb0:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0bb0
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     call disableLCD
     ; Set cutscene to credits
     ld a, $05
@@ -1698,12 +1696,12 @@ jr_000_0bdc: ;{ End credits loop
 
     jr_000_0c06:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0c06
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0bdc ;}
 
 jr_000_0c11:
@@ -1712,12 +1710,12 @@ jr_000_0c11:
 
     jr_000_0c16:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0c16
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     ld a, $12
     ld [$c0f0], a
     ld a, $01
@@ -1756,12 +1754,12 @@ jr_000_0c2c: ;{ Another ending loop?
 
     jr_000_0c64:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0c64
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
 jr jr_000_0c2c ;}
 
 jr_000_0c6f:
@@ -1770,12 +1768,12 @@ jr_000_0c6f:
 
     jr_000_0c74:
         db $76
-        ldh a, [$ba]
+        ldh a, [hVBlankDoneFlag]
         and a
     jr z, jr_000_0c74
 
     xor a
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     call Call_000_10af
     ld a, [$c0b5]
     cp $ff
@@ -1889,7 +1887,7 @@ vBlankHandler: ;{ 00:0C9C
     jr_000_0d3b:
 
     ld a, $01
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     pop hl
     pop de
     pop bc
@@ -1988,7 +1986,7 @@ Jump_000_0d44:
     jr_000_0ddd:
 
     ld a, $01
-    ldh [$ba], a
+    ldh [hVBlankDoneFlag], a
     pop hl
     pop de
     pop bc
@@ -2069,7 +2067,7 @@ jr_000_0e26:
     ld a, [$c0ba]
     adc [hl]
     ld [$c0ba], a
-    ld hl, $ff45
+    ld hl, rLYC ; $FF45
     jr jr_000_0e58
 
 jr_000_0e4f:
@@ -2077,13 +2075,13 @@ jr_000_0e4f:
     ld [$c0b8], a
 
 jr_000_0e53:
-    ld hl, $ff45
+    ld hl, rLYC ; $FF45
     ld a, $90
 
 jr_000_0e58:
     sub [hl]
     ldh [rSCY], a
-    ld hl, $ff45
+    ld hl, rLYC ; $FF45
     inc [hl]
     pop hl
     pop af
@@ -2762,7 +2760,7 @@ Call_000_10d5: ;{ 00:10D5
         ld [$2000], a
         ldh [$fd], a
     ei
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     or $80
     ld [$c0c6], a
 ret ;}
@@ -2841,7 +2839,7 @@ Call_000_11a8: ; Standard level loading routine
     call Call_001_5B87
     ld a, $00
     ld [$c0c9], a
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     ld d, $00
     ld e, a
     dec de
@@ -3410,7 +3408,7 @@ Call_000_1595:
 
 
 Call_000_159a:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     and $fe
     cp $08
     ret nz
@@ -3721,7 +3719,7 @@ loadLevel_drawHud: ;{ 00:1758
     call loadStringList.call
 ; Load level number to VRAM
     ; Load offset to DE
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     ld b, a
     add a
     add b
@@ -4416,7 +4414,7 @@ loadBossEnemy: ;{ 00:1B86
     ld [$c34e], a
     ld a, $20
     ld [$c343], a
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $0c
     jr z, .else
         ; Load Jack
@@ -5210,7 +5208,7 @@ Jump_000_22cd:
     ld [$c342], a
     ld a, $06
     ld [$c343], a
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $04
     jr nz, jr_000_22f3
 
@@ -5272,7 +5270,7 @@ jr_000_22f3:
 
 
 Jump_000_2354:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $0c
     jr z, jr_000_23af
 
@@ -5363,7 +5361,7 @@ jr_000_23e0:
 
 
 Call_000_23ea:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $04
     ret nz
 
@@ -5482,7 +5480,7 @@ jr_000_247c:
 
 
 loadLevel_drawLevelName: ;{ 00:247E
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     dec a
     and $0f
     add a
@@ -5919,7 +5917,7 @@ Call_000_281a: ;{ 00:281A
         dec b
     jr nz, .loop
     ; Get enemy data pointer from bank 6
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     add a
     ld e, a
     ld d, $00
@@ -7252,7 +7250,7 @@ jr_000_2f25:
 
 
 jr_000_2f42:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $0c
     jr z, jr_000_2f50
 
@@ -7276,7 +7274,7 @@ jr_000_2f57:
     call Call_000_2f9e
     ld hl, $3000
     call Call_000_19fa
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     cp $0c
     jr nz, jr_000_2f7e
 
@@ -7438,7 +7436,7 @@ Call_000_3028:
 ret
 
 
-Call_000_304b:
+Call_000_304b: ; 00:304B - Init Sound?
     di
         ldh a, [$fd]
         push af
@@ -7458,7 +7456,7 @@ Call_000_304b:
     ldh [rNR52], a
     xor a
     ldh [$a2], a
-    ret
+ret
 
 
 Call_000_306e:
@@ -7508,7 +7506,7 @@ ret
 
 loadLevel_pickSong: ; 00:30A9
     call Call_000_3028
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     ld d, $00
     ld e, a
     ld hl, stage_songList

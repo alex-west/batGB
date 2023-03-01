@@ -3,9 +3,10 @@
 ; mgbdis v1.4 - Game Boy ROM disassembler by Matt Currie and contributors.
 ; https://github.com/mattcurrie/mgbdis
 
-
-
 INCLUDE "hardware.inc"
+INCLUDE "wram.asm"
+INCLUDE "hram.asm"
+
 INCLUDE "bank_000.asm"
 INCLUDE "bank_001.asm"
 INCLUDE "bank_002.asm"

@@ -6,6 +6,12 @@ oamBuffer: ds $A0 ; $C000-C09F
 
 ; $C0B1 ; Current Cutscene
 
+; $C0B6, $C0B8, $C0B9 - LCD Interrupt Related
+
+
+; $C0BD - Decrementing Timer (hi)
+; $C0BE - (lo)
+
 currentLevel = $C0C2 ; Level Number
 ; $00: broken Gotham City 1 [cutscene 1 graphics]
 ; $01: Gotham City (1-1) [cutscene 1]
@@ -37,6 +43,13 @@ currentLevel = $C0C2 ; Level Number
 
 ; $C4D9/$C4DA - Text Offset (cutscenes, credits)
 
+
+; $C800 - $153 bytes - Audio RAM??
+
 ; $CB00 - VBlank Flag
 ; $CB01 - VBlank update index
 ; $CB02 - VBlank VRAM updates ($HI, $LO, $NUM, bytes...)
+
+; $CBFF - Top of stack
+
+; $CC00-$DFFF - Decompressed Level Data

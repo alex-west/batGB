@@ -2179,7 +2179,7 @@ ret
     ret
 
 
-    ld a, [$c0c2]
+    ld a, [currentLevel]
 
 jr_001_4c20:
     and $fe
@@ -2198,7 +2198,7 @@ jr_001_4c24:
 
 
 Call_001_4c31:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     and $fe
     cp $08
     ret z
@@ -2248,7 +2248,7 @@ jr_001_4c72:
     ret
 
 
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     and $fe
     cp $08
     ret z
@@ -3977,7 +3977,7 @@ table_001_5FE2: ; "SELECT MODE" text
 
 
 Call_001_5ffc:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     inc a
     cp $0d
     jr c, jr_001_6006
@@ -3985,20 +3985,20 @@ Call_001_5ffc:
     ld a, $01
 
 jr_001_6006:
-    ld [$c0c2], a
+    ld [currentLevel], a
     call Call_001_601c
     ret
 
 
 Call_001_600d:
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     dec a
     jr nz, jr_001_6015
 
     ld a, $0c
 
 jr_001_6015:
-    ld [$c0c2], a
+    ld [currentLevel], a
     call Call_001_601c
     ret
 
@@ -4010,7 +4010,7 @@ Call_001_601c:
     ld hl, $cb02
     add hl, de
     push hl
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     ld b, a
     add a
     add b
@@ -4515,7 +4515,7 @@ jr_001_640d:
 
     xor a
     ld [$c4ab], a
-    ld a, [$c0c2]
+    ld a, [currentLevel]
     and $01
     jr nz, jr_001_6422
 
