@@ -18,7 +18,7 @@ Call_001_4000: ;{ 01:4000
 ret ;}
 
 Call_001_400F: ;{ 01:400F
-    ld a, [$c1a2]
+    ld a, [weaponLevel]
     and $07
     ld b, a
     ld de, $0010
@@ -3946,61 +3946,50 @@ jr_001_5fc4:
     ldh [$b0], a
     ret
 
-
-    ld hl, table_001_5FE2
+selectMode_prepText: ;{ 01:5FC9
+    ld hl, .text
     ld bc, $000b
     ld de, $9904
-    call $0ee0
-    ld hl, $6053
+    call draw_fixedLengthString
+    ld hl, stageNumbers
     ld bc, $0003
     ld de, $9948
-    call $0ee0
-    ret
+    call draw_fixedLengthString
+ret
 
-table_001_5FE2: ; "SELECT MODE" text
-    inc e
-    ld c, $15
-    ld c, $0c
-    dec e
-    dec h
-    ld d, $18
-    dec c
-    ld c, $f0
-    or l
-    bit 6, a
-    
-    call nz, Call_001_5ffc
-    ldh a, [$b5]
-    bit 7, a
-    call nz, Call_001_600d
-    ret
+.text: ; "SELECT MODE" text
+    db $1C, $0E, $15, $0E, $0C, $1D, $25, $16, $18, $0D, $0E
+;}
 
+selectMode_handleInput: ; 01:5FED    
+    ldh a, [hInputRisingEdge]
+    bit PADB_UP, a
+    call nz, selectMode_incrementLevel
+    ldh a, [hInputRisingEdge]
+    bit PADB_DOWN, a
+    call nz, selectMode_decrementLevel
+ret
 
-Call_001_5ffc:
+selectMode_incrementLevel: ; 01:5FFC
     ld a, [currentLevel]
     inc a
     cp $0d
-    jr c, jr_001_6006
-
-    ld a, $01
-
-jr_001_6006:
+    jr c, .endIf
+        ld a, $01
+    .endIf:
     ld [currentLevel], a
     call Call_001_601c
-    ret
+ret
 
-
-Call_001_600d:
+selectMode_decrementLevel: ; 01:600D
     ld a, [currentLevel]
     dec a
-    jr nz, jr_001_6015
-
-    ld a, $0c
-
-jr_001_6015:
+    jr nz, .endIf
+        ld a, $0c
+    .endIf:
     ld [currentLevel], a
     call Call_001_601c
-    ret
+ret
 
 
 Call_001_601c:
@@ -4016,7 +4005,7 @@ Call_001_601c:
     add b
     ld e, a
     ld d, $00
-    ld hl, $6050
+    ld hl, stageNumbers - 3 ; $6050
     add hl, de
     ld e, l
     ld d, h
@@ -4029,11 +4018,11 @@ Call_001_601c:
     ld [hl+], a
     ld b, $03
 
-jr_001_6042:
-    ld a, [de]
-    ld [hl+], a
-    inc de
-    dec b
+    jr_001_6042:
+        ld a, [de]
+        ld [hl+], a
+        inc de
+        dec b
     jr nz, jr_001_6042
 
     xor a
@@ -4041,21 +4030,12 @@ jr_001_6042:
     ld a, [$cb01]
     add $06
     ld [$cb01], a
-    ret
+ret
 
 stageNumbers: ; 01:6053 - Stage numbers (e.g. 1-1, 1-2, etc.)
-    db $01, $24, $01, $01, $24, $02, $01, $24, $03, $01, $24, $0b, $02, $24, $01, $02
+    db $01, $24, $01, $01, $24, $02, $01, $24, $03, $01, $24, $0B, $02, $24, $01, $02
     db $24, $02, $02, $24, $03, $03, $24, $01, $03, $24, $02, $04, $24, $01, $04, $24
-    db $02, $04, $24, $0b
-; END, END, END, END
-    ld c, $17
-    dec c
-    ld c, $17
-    dec c
-    ld c, $17
-    dec c
-    ld c, $17
-    dec c
+    db $02, $04, $24, $0B, $0E, $17, $0D, $0E, $17, $0D, $0E, $17, $0D, $0E, $17, $0D
 
 ; Title tilemap in string list format
 titleTilemap: ; 01:6083
@@ -4093,23 +4073,21 @@ titleTilemap: ; 01:6083
     ; [end]
     db $00
 
-    ld [bc], a
-    ld b, b
-    inc b
-    db $01
+table_001_61DB: ; 01:61DB
+    db $02, $40, $04, $01
 
+Call_001_61DF: ; 01:61DF
     ld b, $08
     ld de, $0008
     ld hl, $c3db
     xor a
 
-jr_001_61e8:
-    ld [hl], a
-    add hl, de
-    dec b
+    jr_001_61e8:
+        ld [hl], a
+        add hl, de
+        dec b
     jr nz, jr_001_61e8
-
-    ret
+ret
 
 
 Call_001_61ee:

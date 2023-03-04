@@ -92,21 +92,21 @@ Jump_000_0175: ; 00:0175
 
     ; Initialize loaded bank
     ld a, $01
-    ldh [$fd], a
+    ldh [hCurrentBank], a
     ld [$2000], a
 
     call Call_000_304b
 
 Jump_000_0194:
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
-    call Call_000_3028
+    ldh [hInputPressed], a
+    call stopSound
     ld a, $01
-    call Call_000_308d
+    call playSound
     xor a
-    call Call_000_0ed2
+    call draw_fillTilemap
     ld a, $02
     call loadProc_A
     call clearOAM
@@ -224,9 +224,9 @@ jr_000_027e:
     ldh [rIE], a
     ldh [$fc], a
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
+    ldh [hInputPressed], a
     ld a, $5e
     ld [$c1a5], a
     ld a, $da
@@ -451,18 +451,18 @@ Jump_000_03bd:
 
 jr_000_03f3:
     ; Check input, jump to sound test
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     ld [$c0b4], a
     and $f7
     xor $50
-        jp z, Jump_000_04f5
+        jp z, soundTest_proc
 
     ld a, $00
     ld [$c0bd], a
     ld a, $01
     ld [$c0be], a
     ld a, $2c
-    call Call_000_308d
+    call playSound
     ld hl, $cb00
     set 7, [hl]
 
@@ -530,6 +530,7 @@ jr_000_0467:
     ld a, $01
     ld [currentLevel], a
     call Call_000_118d
+    
     ld a, [$c0b5]
     and a
         jp z, Jump_000_05a3
@@ -537,37 +538,48 @@ jr_000_0467:
     bit 2, a
         jp z, Jump_000_05a3
 
+; Select Mode
     call disableLCD
+    
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
-    call Call_000_3028
+    ldh [hInputPressed], a
+    
+    call stopSound
+    
     ld a, $25
-    call Call_000_0ed2
+    call draw_fillTilemap
+    
     xor a
     call loadProc_A
     call clearOAM
+    
     ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
     ld a, $1b
     ldh [rOBP1], a
+    
     xor a
     ldh [rSCY], a
     ldh [rSCX], a
     ldh [$bb], a
     ldh [$bc], a
+    
     ld a, $01
     ldh [$9a], a
     ld [currentLevel], a
-    call $5fc9
+    
+    call selectMode_prepText
+    
     xor a
     ldh [rIF], a
     ld a, $05
     ldh [rIE], a
     ldh [$fc], a
+    
     ld a, $00
     ldh [rSTAT], a
     ld a, $81
@@ -576,11 +588,11 @@ jr_000_0467:
 jr_000_04d2: ;{
     ld hl, $cb00
     res 7, [hl]
-    ld hl, $ffb5
+    ld hl, hInputRisingEdge
     bit 3, [hl]
         jp nz, Jump_000_0595
 
-    call $5fed
+    call selectMode_handleInput ;$5fed
     call Call_000_10af
     ld hl, $cb00
     set 7, [hl]
@@ -596,86 +608,104 @@ jr_000_04d2: ;{
 jr jr_000_04d2 ;}
 
 ; Sound test
-Jump_000_04f5: ; 00:04F5
+soundTest_proc: ; 00:04F5
     call disableLCD
+    
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
+    ldh [hInputPressed], a
+    
     call Call_000_304b
-    call Call_000_3028
+    call stopSound
+    
     ld a, $25
-    call Call_000_0ed2
+    call draw_fillTilemap
+    
     ld a, $00
     call loadProc_A
     call clearOAM
+    
     ld a, $00
     ldh [$9a], a
+    
     xor a
     ld [$c1a3], a
+    
     ; Set palettes
     ld a, $e4
     ldh [rBGP], a
     ldh [rOBP0], a
     ld a, $1b
     ldh [rOBP1], a
+    
     xor a
     ldh [rSCY], a
     ldh [rSCX], a
     ldh [$bb], a
     ldh [$bc], a
+    
     ld de, soundTestText
     call loadStringList.call
+    
     xor a
     ld [$cb02], a
     ld [$cb01], a
     ld [$cb00], a
+    
     xor a
     ldh [rIF], a
     ld a, $05
     ldh [rIE], a
     ldh [$fc], a
+    
     ld a, $00
     ldh [rSTAT], a
     ld a, $81
     ldh [rLCDC], a
 
-jr_000_054d: ;{ Sound test loop
+.loop: ;{ 00:054D - Sound test loop
     ld hl, $cb00
     res 7, [hl]
-    ldh a, [$b5]
-    bit 2, a
+    
+    ldh a, [hInputRisingEdge]
+    bit PADB_SELECT, a
         jp nz, Jump_000_0175
 
+    ; Let the player select the song (and update the number accordingly)
     call soundTest_handleInput
-    ldh a, [$b5]
-    bit 3, a
-        call nz, Call_000_3028
-    ldh a, [$b5]
-    and $03
-    jr z, jr_000_057a
-        call Call_000_3028
+    
+    ; Stop music
+    ldh a, [hInputRisingEdge]
+    bit PADB_START, a
+        call nz, stopSound
+    
+    ; Play next song
+    ldh a, [hInputRisingEdge]
+    and PADF_B | PADF_A ; $03
+    jr z, .endIf
+        call stopSound
         ld a, [$c1a3]
         ld e, a
         ld a, $00
         ld hl, soundTest_songList
         add hl, de
         ld a, [hl]
-        call Call_000_308d
-    jr_000_057a:
+        call playSound
+    .endIf:
 
     ld hl, $cb00
     set 7, [hl]
 
-    jr_000_057f:
+    .waitLoop:
         db $76
         ldh a, [hVBlankDoneFlag]
         and a
-    jr z, jr_000_057f
+    jr z, .waitLoop
 
     xor a
     ldh [hVBlankDoneFlag], a
-jr jr_000_054d ;}
+jr .loop ;}
 
 soundTest_songList: ; 00:058A
     db $01, $09, $02, $0C, $0B, $0D, $0F, $06, $08, $05, $0E
@@ -697,9 +727,9 @@ Jump_000_0595:
 Jump_000_05a3:
     call disableLCD
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
+    ldh [hInputPressed], a
     ; Load cutscene ID for stage from table
     ld a, [currentLevel]
     and $0f
@@ -712,10 +742,10 @@ Jump_000_05a3:
         jp z, Jump_000_0673
 
     ld [$c0b1], a
-    call Call_000_3028
+    call stopSound
     ; Load cutscene music
     ld a, $09
-    call Call_000_308d
+    call playSound
     ld a, $e0
     ld [$c0bd], a
     ld a, $00
@@ -724,17 +754,17 @@ Jump_000_05a3:
     ld [$c0b2], a
     ld [$c0b3], a
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneLoad_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 
 jr_000_05f1:
@@ -760,22 +790,22 @@ jr_000_05f1:
             jr c, jr_000_065c
     jr_000_061c:
 
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 3, a
         jr nz, jr_000_065c
 
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneHandle_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     
     call Call_000_10af
@@ -811,9 +841,9 @@ jr_000_065c:
     ldh [hVBlankDoneFlag], a
     call disableLCD
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
+    ldh [hInputPressed], a
 
 Jump_000_0673: ; Start level
     call Call_000_10af
@@ -826,7 +856,7 @@ Jump_000_0673: ; Start level
     ld [$cb01], a
     ld [$cb00], a
     ld a, $25
-    call Call_000_0ed2
+    call draw_fillTilemap
     ld a, [currentLevel]
     call Call_000_1405 ; Load level assets
     xor a
@@ -874,7 +904,7 @@ jr_000_06c4:
     ld [$c0b6], a
     ld a, $80
     ld [$c1a3], a
-    call Call_000_3028 ; Clear music?
+    call stopSound ; Clear music?
     call loadLevel_pickSong
     ; Set palettes
     ld a, $e4
@@ -895,7 +925,7 @@ jr_000_06c4:
 jr_000_0708: ;{ Some game loop
     ld hl, $cb00
     res 7, [hl]
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     and $0b
         jp nz, Jump_000_0781
 
@@ -941,7 +971,7 @@ jr_000_072e:
 jr_000_0749: ;{ Another game loop
     ld hl, $cb00
     res 7, [hl]
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     and $0b
         jr nz, jr_000_0781
     ld a, [$c1a3]
@@ -1011,9 +1041,9 @@ Jump_000_07b2: ;{ Main game loop ?
     ld a, [$c0be]
     and a
     jr nz, jr_000_0834
-        ldh a, [$b4]
+        ldh a, [hInputPressed]
         ldh [$8c], a
-        ldh a, [$b5]
+        ldh a, [hInputRisingEdge]
         ldh [$8d], a
         ld a, [$c0c4]
         and a
@@ -1106,10 +1136,10 @@ jr_000_0845:
     ld [$c0bd], a
     ld a, $00
     ld [$c0be], a
-    call Call_000_3028
+    call stopSound
     ; Play Stage Clear music
     ld a, $06
-    call Call_000_308d
+    call playSound
 
 jr_000_0865: ;{
     ld hl, $cb00
@@ -1162,7 +1192,7 @@ Jump_000_08b5:
     ld a, $40
     ld [$c0c9], a
     ld a, $16
-    call Call_000_308d
+    call playSound
 
 Jump_000_08bf:
     call Call_000_267e
@@ -1259,20 +1289,19 @@ jr_000_0947:
 
 Jump_000_0956:
 jr_000_0956:
-    call Call_000_3028
-    ld a, [$c0c7]
+    call stopSound
+    ld a, [playerLives]
     dec a
-    ld [$c0c7], a
+    ld [playerLives], a
     xor a
     ldh [$fa], a
     xor a
     ld [$c0a0], a
     call Call_000_10af
-    ld a, [$c0c7]
+    ld a, [playerLives]
     cp $ff
-    jp z, Jump_000_0a59
-
-    jp Jump_000_065c
+        jp z, Jump_000_0a59
+jp Jump_000_065c
 
 
 jr_000_0975:
@@ -1291,10 +1320,10 @@ jr_000_0975:
     ld [$c0f0], a
     ld a, $01
     ld [$c0f1], a
-    call Call_000_3028
+    call stopSound
     ; Play death music
     ld a, $08
-    call Call_000_308d
+    call playSound
 
 jr_000_0995:
     ld hl, $cb00
@@ -1378,10 +1407,10 @@ Jump_000_09fc:
     ld [$c0f0], a
     ld a, $01
     ld [$c0f1], a
-    call Call_000_3028
+    call stopSound
     ; Play death music
     ld a, $08
-    call Call_000_308d
+    call playSound
 
 jr_000_0a1c:
     ld hl, $cb00
@@ -1430,19 +1459,19 @@ Jump_000_0a59:
     ldh [hVBlankDoneFlag], a
     call disableLCD
     xor a
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     dec a
-    ldh [$b4], a
+    ldh [hInputPressed], a
     call Call_000_172c
     ld a, $25
-    call Call_000_0ed2
+    call draw_fillTilemap
     call Call_000_162b
     xor a
     ldh [$9a], a
     ld [$c1a3], a
     ; Play Game Over music
     ld a, $05
-    call Call_000_308d
+    call playSound
     ; Set palettes
     ld a, $e4
     ldh [rBGP], a
@@ -1466,9 +1495,9 @@ Jump_000_0a59:
 jr_000_0aa9:
     ld hl, $cb00
     res 7, [hl]
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 3, a
-    jr nz, jr_000_0aca
+        jr nz, jr_000_0aca
 
     call Call_000_16f2
     call Call_000_10af
@@ -1483,7 +1512,7 @@ jr_000_0aa9:
 
     xor a
     ldh [hVBlankDoneFlag], a
-    jr jr_000_0aa9
+jr jr_000_0aa9
 
 jr_000_0aca:
     ld hl, $cb00
@@ -1500,71 +1529,43 @@ jr_000_0aca:
     ld a, [$c1a3]
     and a
     jr nz, jr_000_0b14
+        call stopSound
+        xor a
+        ldh [$fa], a
+        xor a
+        ld [$c0a0], a
+        call Call_000_10af
+        ld a, [currentLevel]
+        ld e, a
+        ld d, $00
+        ld hl, table_000_0B1A
+        add hl, de
+        ld b, [hl]
+        ld a, [$c1a2]
+        cp b
+        jr c, jr_000_0b00
+            ld a, b
+            ld [$c1a2], a
+        jr_000_0b00:
+        ld a, [currentLevel]
+        ld e, a
+        ld d, $00
+        ld hl, table_000_0B2A ; $0b2a
+        add hl, de
+        ld a, [hl]
+        ld [currentLevel], a
+        call Call_000_1190
+        jp Jump_000_065c
+    jr_000_0b14:
+        call disableLCD
+        jp Jump_000_0194
 
-    call Call_000_3028
-    xor a
-    ldh [$fa], a
-    xor a
-    ld [$c0a0], a
-    call Call_000_10af
-    ld a, [currentLevel]
-    ld e, a
-    ld d, $00
-    ld hl, $0b1a
-    add hl, de
-    ld b, [hl]
-    ld a, [$c1a2]
-    cp b
-    jr c, jr_000_0b00
-
-    ld a, b
-    ld [$c1a2], a
-
-jr_000_0b00:
-    ld a, [currentLevel]
-    ld e, a
-    ld d, $00
-    ld hl, $0b2a
-    add hl, de
-    ld a, [hl]
-    ld [currentLevel], a
-    call Call_000_1190
-    jp Jump_000_065c
-
-
-jr_000_0b14:
-    call disableLCD
-    jp Jump_000_0194
-
-
-    ld bc, $0101
-    ld [bc], a
-    ld [bc], a
-    inc bc
-    inc bc
-    inc bc
-    ld b, $06
-    dec b
-
-    db $05, $05
-
-    dec b
-    dec b
-    dec b
-    ld bc, $0101
-    inc bc
-    inc bc
-    dec b
-    dec b
-    dec b
-    ld [$0a08], sp
-
-    db $0a, $0a
-
-    ld a, [bc]
-    ld a, [bc]
-    ld a, [bc]
-
+; Continue weapon levels
+table_000_0B1A: ; 00:0B1A
+    db $01, $01, $01, $02, $02, $03, $03, $03, $06, $06, $05, $05, $05, $05, $05, $05
+; Level to restart upon continue
+table_000_0B2A: ; 00:0B2A
+    db $01, $01, $01, $03, $03, $05, $05, $05, $08, $08, $0A, $0A, $0A, $0A, $0A, $0A
 
 ; Prep ending
 Jump_000_0b3a:
@@ -1581,27 +1582,27 @@ Jump_000_0b3a:
     xor a
     ldh [hVBlankDoneFlag], a
     call disableLCD
-    call Call_000_3028
+    call stopSound
     ; Play ending music
     ld a, $0e
-    call Call_000_308d
+    call playSound
     ; Set ending cutscene
     ld a, $03
     ld [$c0b1], a
     xor a
     ld [$c0b2], a
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneLoad_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 
 jr_000_0b76: ;{ Ending cutscene loop
@@ -1612,17 +1613,17 @@ jr_000_0b76: ;{ Ending cutscene loop
         jr nz, jr_000_0bab
 
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneHandle_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call Call_000_10af
     ld hl, $cb00
@@ -1657,17 +1658,17 @@ jr_000_0bab:
     xor a
     ld [$c0b2], a
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneLoad_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 
 jr_000_0bdc: ;{ End credits loop
@@ -1678,17 +1679,17 @@ jr_000_0bdc: ;{ End credits loop
         jr nz, jr_000_0c11
 
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneHandle_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call Call_000_10af
     ld hl, $cb00
@@ -1736,17 +1737,17 @@ jr_000_0c2c: ;{ Another ending loop?
     jr z, jr_000_0c6f
 
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call cutsceneHandle_farCall
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call Call_000_10af
     ld hl, $cb00
@@ -1782,7 +1783,7 @@ jr_000_0c6f:
     ; Do something if select if held?
     ld a, $77
     ld [$c0b5], a
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     bit 2, a
         jp z, Jump_000_0175
 
@@ -1869,19 +1870,19 @@ vBlankHandler: ;{ 00:0C9C
     and $0f
     or b
     ld c, a
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     xor c
     and c
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     ld a, c
-    ldh [$b4], a
+    ldh [hInputPressed], a
     ld a, $30
     ldh [rP1], a
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     and $07
     xor $07
     jr nz, jr_000_0d3b
-        ldh a, [$b5]
+        ldh a, [hInputRisingEdge]
         bit 3, a
         jp nz, Jump_000_0175
     jr_000_0d3b:
@@ -1968,19 +1969,19 @@ Jump_000_0d44:
     and $0f
     or b
     ld c, a
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     xor c
     and c
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     ld a, c
-    ldh [$b4], a
+    ldh [hInputPressed], a
     ld a, $30
     ldh [rP1], a
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     and $07
     xor $07
     jr nz, jr_000_0ddd
-        ldh a, [$b5]
+        ldh a, [hInputRisingEdge]
         bit 3, a
         jp nz, Jump_000_0175
     jr_000_0ddd:
@@ -2008,11 +2009,11 @@ Jump_000_0de6:
         call z, Call_000_0f34
     jr_000_0df9:
 
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     and $07
     xor $07
     jr nz, jr_000_0e08
-        ldh a, [$b5]
+        ldh a, [hInputRisingEdge]
         bit 3, a
         jp nz, Jump_000_0175
     jr_000_0e08:
@@ -2109,12 +2110,12 @@ Call_000_0E62: ;{ 00:0E62 - Read input (unused? task done in vblank)
     and $0f
     or b
     ld c, a
-    ldh a, [$b4]
+    ldh a, [hInputPressed]
     xor c
     and c
-    ldh [$b5], a
+    ldh [hInputRisingEdge], a
     ld a, c
-    ldh [$b4], a
+    ldh [hInputPressed], a
     ld a, $30
     ldh [rP1], a
 ret ;}
@@ -2178,8 +2179,9 @@ Call_000_0EC9: ;{ 00:0EC9 - Unused?
     jr nz, .loop
 ret ;}
 
-
-Call_000_0ed2:
+; Fills tilemap with contents of A
+; Do not call during active display
+draw_fillTilemap: ; 00:0ED2
     ld hl, $9fff
     ld bc, $0800
     jr_000_0ed8:
@@ -2190,15 +2192,20 @@ Call_000_0ed2:
     jr nz, jr_000_0ed8
 ret
 
-
-    jr_000_0ee0:
+; A simple memcopy
+; Used only by SELECT MODE
+; HL - Source
+; BC - Length
+; DE - Destination
+draw_fixedLengthString: ; 00:0EE0
+    .loop:
         ld a, [hl+]
         ld [de], a
         inc de
         dec bc
         ld a, b
         or c
-    jr nz, jr_000_0ee0
+    jr nz, .loop
 ret
 
 ; Load string lists
@@ -2358,11 +2365,11 @@ loadProc_A: ;{ 00:0F74
     add hl, de
     
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, b
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ; Load destination addr to BC
     ld a, [hl+]
@@ -2406,7 +2413,7 @@ loadProc_A: ;{ 00:0F74
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 ret ;}
 
@@ -2431,11 +2438,11 @@ loadProc_B: ;{ 00:0FC1
     ld hl, $4000
     add hl, de
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, b
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ld a, [hl+]
     ld c, a
@@ -2472,7 +2479,7 @@ loadProc_B: ;{ 00:0FC1
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 ret ;}
 
@@ -2623,56 +2630,53 @@ jr_000_10aa:
 ret
 
 
-Call_000_10af:
+Call_000_10af: ;{ 00:10AF - Clear unused OAM
     ldh a, [$fa]
     bit 7, a
-    jr nz, jr_000_10c6
-
-    ld h, $c0
-    ld a, [$c0a0]
-    ld l, a
-
-jr_000_10bb:
-    ld a, l
-    cp $a0
-    ret nc
-
-    xor a
-    ld [hl+], a
-    ld [hl+], a
-    ld [hl+], a
-    ld [hl+], a
-    jr jr_000_10bb
-
-jr_000_10c6:
-    ld a, [$c0a0]
-    and a
-    ret z
-
-    ld b, a
-    ld hl, $c000
-    xor a
-
-jr_000_10d0:
-    ld [hl+], a
-    dec b
-    jr nz, jr_000_10d0
-
-    ret
+    jr nz, .else
+        ld h, $c0
+        ld a, [$c0a0]
+        ld l, a
+    
+        .loopA:
+            ld a, l
+            cp $a0
+                ret nc
+            xor a
+            ld [hl+], a
+            ld [hl+], a
+            ld [hl+], a
+            ld [hl+], a
+        jr .loopA
+    .else:
+        ld a, [$c0a0]
+        and a
+            ret z
+    
+        ld b, a
+        ld hl, $c000
+        xor a
+    
+        .loopB:
+            ld [hl+], a
+            dec b
+        jr nz, .loopB
+        ret
+;}
 
 
 ; Load level
-Call_000_10d5: ;{ 00:10D5
+loadLevel: ;{ 00:10D5
     add a
     add a
     ld e, a
     ld d, $00
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $07
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ld hl, $4000
     add hl, de
@@ -2758,7 +2762,7 @@ Call_000_10d5: ;{ 00:10D5
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ld a, [currentLevel]
     or $80
@@ -2820,7 +2824,7 @@ Call_000_1190:
     call Call_000_1821
     call $4c1d
     ld a, $03
-    ld [$c0c7], a
+    ld [playerLives], a
     call $4c1d
     ld a, $04
     ld [$c0c8], a
@@ -2904,7 +2908,7 @@ Call_000_121c: ; 00:121C
     call Call_000_18c9
     call $4745
     call $6404
-    call $61df
+    call Call_001_61DF ;$61df
     call $7231
     call $78b6
     ld a, $22
@@ -2997,7 +3001,7 @@ jr_000_12b8:
     ld a, $40
     ld [$c0c9], a
     ld a, $16
-    call Call_000_308d
+    call playSound
 
 jr_000_12f5:
     call $4c73
@@ -3172,7 +3176,7 @@ Call_000_1405: ; 00:1405
     .break:
 
     ld a, [$c0e9]
-    call Call_000_10d5 ; Load level map
+    call loadLevel ; Load level map
     xor a
     ld [$c0ea], a
 ret
@@ -3288,7 +3292,7 @@ Call_000_14eb:
     and a
     jr nz, jr_000_150d
 
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 3, a
     ret z
 
@@ -3300,12 +3304,12 @@ Call_000_14eb:
     call Call_000_1595
     call Call_000_306e
     ld a, $1e
-    call Call_000_308d
+    call playSound
     ret
 
 
 jr_000_150d:
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 3, a
     jr nz, jr_000_1531
 
@@ -3413,7 +3417,7 @@ Call_000_159a:
     cp $08
     ret nz
 
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     and $f7
     ret z
 
@@ -3428,7 +3432,7 @@ Call_000_159a:
     ld d, $00
     ld hl, $c106
     add hl, de
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     ld [hl], a
     ld a, [$c116]
     inc a
@@ -3443,9 +3447,9 @@ jr_000_15c3:
     ld d, $00
     ld hl, $c106
     add hl, de
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     ld [hl], a
-    ld de, $61db
+    ld de, table_001_61DB ; $61db
     ld hl, $c106
     ld b, $04
 
@@ -3639,7 +3643,7 @@ jr_000_16eb:
 
 
 Call_000_16f2:
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 2, a
     jr z, jr_000_1700
 
@@ -3648,7 +3652,7 @@ Call_000_16f2:
     ld [$c1a3], a
 
 jr_000_1700:
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 7, a
     jr z, jr_000_170b
 
@@ -3656,7 +3660,7 @@ jr_000_1700:
     ld [$c1a3], a
 
 jr_000_170b:
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 6, a
     jr z, jr_000_1715
 
@@ -3810,7 +3814,7 @@ jr_000_17d2:
 
 ; Draw number of lives
     ld hl, $982f
-    ld a, [$c0c7]
+    ld a, [playerLives]
     ld [hl], a
 ; Draw health bar
     ld a, [$c0c8]
@@ -4319,10 +4323,10 @@ jr_000_1a70:
 
 
 soundTest_handleInput: ;{ 00:1A71
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 6, a
         call nz, soundTest_increment
-    ldh a, [$b5]
+    ldh a, [hInputRisingEdge]
     bit 7, a
         call nz, soundTest_decrement
     call soundTest_drawNumber
@@ -5213,7 +5217,7 @@ Jump_000_22cd:
     jr nz, jr_000_22f3
 
     ld a, $17
-    call Call_000_308d
+    call playSound
 
 jr_000_22f3:
     ld a, [$c34c]
@@ -5395,7 +5399,7 @@ Call_000_240e:
     ld a, $08
     ldh [$a0], a
     ld a, $17
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -5803,9 +5807,9 @@ jr_000_272b:
     ld a, [$c0e1]
     inc a
     ld [$c0e1], a
-    ld a, [$c0c7]
+    ld a, [playerLives]
     inc a
-    ld [$c0c7], a
+    ld [playerLives], a
     ld a, $ff
     ld [$c0e2], a
     jr jr_000_272b
@@ -5826,7 +5830,7 @@ jr_000_2754:
     ld [hl+], a
     ld a, $01
     ld [hl+], a
-    ld a, [$c0c7]
+    ld a, [playerLives]
     ld [hl+], a
     xor a
     ld [hl+], a
@@ -5834,7 +5838,7 @@ jr_000_2754:
     add $04
     ld [$cb01], a
     ld a, $29
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -5900,11 +5904,11 @@ soundTestText: ; 00:27D1 - String list format
 ;  (sometime after the tile data has been loaded to WRAM)
 Call_000_281a: ;{ 00:281A
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ; Clear some stuff
     ld b, $05
@@ -5930,7 +5934,7 @@ Call_000_281a: ;{ 00:281A
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 ret ;}
 
@@ -5938,17 +5942,17 @@ ret ;}
 Call_000_2850:
 jr_000_2850:
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $06
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call Call_000_2868
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
 ret
 
@@ -7112,14 +7116,14 @@ jr_000_2e3b:
     call $4de8
     pop bc
     ld a, $21
-    call Call_000_308d
+    call playSound
     ld a, $fd
     ret
 
 
 jr_000_2e7e:
     ld a, $21
-    call Call_000_308d
+    call playSound
     pop hl
     ld a, $fe
     ret
@@ -7138,7 +7142,7 @@ jr_000_2e87:
     and $0f
     call Call_000_1a1b
     ld a, $1c
-    call Call_000_308d
+    call playSound
     ld a, $ff
     ret
 
@@ -7223,7 +7227,7 @@ jr_000_2f08:
 
     call Call_000_2f81
     ld a, $1b
-    call Call_000_308d
+    call playSound
     ld a, [$c356]
     inc a
     ld [$c356], a
@@ -7240,7 +7244,7 @@ jr_000_2f25:
 
     call Call_000_2f9e
     ld a, $21
-    call Call_000_308d
+    call playSound
     ld a, [$c357]
     inc a
     ld [$c357], a
@@ -7255,12 +7259,12 @@ jr_000_2f42:
     jr z, jr_000_2f50
 
     ld a, $15
-    call Call_000_308d
+    call playSound
     jr jr_000_2f57
 
 jr_000_2f50:
     ld a, $2b
-    call Call_000_308d
+    call playSound
     jr jr_000_2f57
 
 jr_000_2f57:
@@ -7387,11 +7391,11 @@ timerOverflowInterruptHandler: ;{ 00:2FF8
     push hl
     di
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $02
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ei
     call $40a9
@@ -7399,7 +7403,7 @@ timerOverflowInterruptHandler: ;{ 00:2FF8
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ei
     xor a
@@ -7413,19 +7417,19 @@ timerOverflowInterruptHandler: ;{ 00:2FF8
 ret ;}
 
 
-Call_000_3028:
+stopSound: ; 00:3028 - Clear music
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $02
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call $4036
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ld a, $ff
     ldh [rNR50], a
@@ -7438,17 +7442,17 @@ ret
 
 Call_000_304b: ; 00:304B - Init Sound?
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $02
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     call $4000
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ld a, $ff
     ldh [rNR50], a
@@ -7461,17 +7465,17 @@ ret
 
 Call_000_306e:
     di
-    ldh a, [$fd]
+    ldh a, [hCurrentBank]
     push af
     ld a, $02
     ld [$2000], a
-    ldh [$fd], a
+    ldh [hCurrentBank], a
     ei
     call $4066
     di
     pop af
     ld [$2000], a
-    ldh [$fd], a
+    ldh [hCurrentBank], a
     ei
     xor a
     ldh [$a2], a
@@ -7483,36 +7487,36 @@ Call_000_3089:
     ret
 
 
-Call_000_308d: ; Load song [A]
+playSound: ; 00:308D - Load song [A]
     push bc
     ld b, a
     di
-        ldh a, [$fd]
+        ldh a, [hCurrentBank]
         push af
         ld a, $02
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     ld a, b
     call Call_000_30ea
     di
         pop af
         ld [$2000], a
-        ldh [$fd], a
+        ldh [hCurrentBank], a
     ei
     pop bc
 ret
 
 
 loadLevel_pickSong: ; 00:30A9
-    call Call_000_3028
+    call stopSound
     ld a, [currentLevel]
     ld d, $00
     ld e, a
     ld hl, stage_songList
     add hl, de
     ld a, [hl]
-    call Call_000_308d
+    call playSound
 ret
 
 stage_songList: ; 00:30BB
@@ -7976,7 +7980,7 @@ table_000_3319:
     ld hl, $0100
     call Call_000_19fa
     ld a, $18
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -7985,7 +7989,7 @@ table_000_3319:
     ld hl, $0100
     call Call_000_19fa
     ld a, $18
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -7994,7 +7998,7 @@ table_000_3319:
     ld hl, $0100
     call Call_000_19fa
     ld a, $18
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -8003,7 +8007,7 @@ table_000_3319:
     ld hl, $0100
     call Call_000_19fa
     ld a, $18
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -8012,14 +8016,14 @@ table_000_3319:
     ld hl, $0100
     call Call_000_19fa
     ld a, $18
-    call Call_000_308d
+    call playSound
     ret
 
 
     ld hl, $0500
     call Call_000_19fa
     ld a, $19
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -8028,12 +8032,12 @@ table_000_3319:
     ld hl, $0100
     call Call_000_19fa
     ld a, $19
-    call Call_000_308d
+    call playSound
     ret
 
 
     ld a, $28
-    call Call_000_308d
+    call playSound
     ld a, [$c0c8]
     cp $04
     ret z
@@ -8048,7 +8052,7 @@ table_000_3319:
     call Call_000_19fa
     call $4c62
     ld a, $19
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -8056,12 +8060,12 @@ table_000_3319:
     call Call_000_19fa
     call Call_000_2fd4
     ld a, $1b
-    call Call_000_308d
+    call playSound
     ret
 
 
     ld a, $19
-    call Call_000_308d
+    call playSound
     ld a, [$c1a2]
     inc a
     cp $08
@@ -8082,7 +8086,7 @@ table_000_3319:
 
 jr_000_33fd:
     ld a, $19
-    call Call_000_308d
+    call playSound
     ret
 
 
@@ -8097,9 +8101,9 @@ jr_000_33fd:
     ld [hl+], a
     ld a, $01
     ld [hl+], a
-    ld a, [$c0c7]
+    ld a, [playerLives]
     inc a
-    ld [$c0c7], a
+    ld [playerLives], a
     ld [hl+], a
     xor a
     ld [hl+], a
@@ -8107,12 +8111,12 @@ jr_000_33fd:
     add $04
     ld [$cb01], a
     ld a, $29
-    call Call_000_308d
+    call playSound
     ret
 
 
     ld a, $1a
-    call Call_000_308d
+    call playSound
     ld a, [$c1a2]
     dec a
     ret z
@@ -8801,7 +8805,7 @@ jr_000_3800:
     jr c, jr_000_3827
 
     ld a, $10
-    call Call_000_308d
+    call playSound
 
 jr_000_3827:
     ldh a, [$9e]

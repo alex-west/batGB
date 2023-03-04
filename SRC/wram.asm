@@ -29,13 +29,17 @@ currentLevel = $C0C2 ; Level Number
 ; $0D: Ending cutscene (END)
 ; $0E: invalid
 
-; $C0C7 ; Lives
+playerLives = $C0C7 ; Lives
 
 ; $C0DE ; Score (ones, tens)
 ; $C0DF ; Score (hundreds, thousands)
 ; $C0E0 ; Score (ten housands)
 
+; $C117 - Batman weapon type
 
+; $C122 - Batman projectile slots (8 slots, $10 bytes each)
+
+weaponLevel = $C1A2 ; Batman's onscreen projectile limit
 
 ;$C24E: enemy ram (5 slots 0x20 bytes each)
 
