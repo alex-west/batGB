@@ -73,9 +73,9 @@ coldBoot: ; 00:0150
     jr nz, .clearWramLoop
 
     xor a
-    ld [$c0e3], a
-    ld [$c0e4], a
-    ld [$c0e5], a
+    ld [topScoreLo], a
+    ld [topScoreMid], a
+    ld [topScoreHi], a
     ld [$c0b5], a
 
 Jump_000_0175: ; 00:0175
@@ -233,7 +233,7 @@ jr_000_027e:
     ld [$c1a3], a
     ld a, $03
     ld [$c1a4], a
-    ld hl, $03da
+    ld hl, table_000_03DA ; $03DA
     ld a, [hl+]
     ld [$c1a7], a
     ld a, [hl+]
@@ -429,25 +429,9 @@ Jump_000_03bd:
     ldh [$9a], a
     jr jr_000_0396
 
-; Data?
-    ld b, $05
-    ld [bc], a
-    dec b
-    inc b
-    inc bc
-    inc b
-    inc bc
-    ld a, [bc]
-    inc bc
-    ld [bc], a
-    ld [de], a
-    ld [bc], a
-    ld bc, $030f
-    ld bc, $040a
-    ld bc, $0202
-    nop
-    inc d
-    nop
+table_000_03DA:
+    db $06, $05, $02, $05, $04, $03, $04, $03, $0A, $03, $02, $12, $02, $01, $0F, $03
+    db $01, $0A, $04, $01, $02, $02, $00, $14, $00
 
 jr_000_03f3:
     ; Check input, jump to sound test
@@ -1304,7 +1288,7 @@ jr_000_0956:
     call oam_clearUnused
     ld a, [playerLives]
     cp $ff
-        jp z, Jump_000_0a59
+        jp z, mode_gameOver
 jp Jump_000_065c
 
 
@@ -1447,17 +1431,18 @@ jr_000_0a1c:
 
     xor a
     ldh [hVBlankDoneFlag], a
-    jr jr_000_0a1c
+jr jr_000_0a1c
 
-Jump_000_0a59:
+mode_gameOver: ;{ 00:0A59
+.prep: ;{
     ld hl, $cb00
     set 7, [hl]
 
-    jr_000_0a5e:
+    .waitLoop_A:
         db $76
         ldh a, [hVBlankDoneFlag]
         and a
-    jr z, jr_000_0a5e
+    jr z, .waitLoop_A
 
     xor a
     ldh [hVBlankDoneFlag], a
@@ -1466,10 +1451,11 @@ Jump_000_0a59:
     ldh [hInputRisingEdge], a
     dec a
     ldh [hInputPressed], a
-    call Call_000_172c
+    call updateTopScore
     ld a, $25
     call draw_fillTilemap
-    call Call_000_162b
+    call gameOver_drawScreen
+    
     xor a
     ldh [$9a], a
     ld [$c1a3], a
@@ -1482,57 +1468,61 @@ Jump_000_0a59:
     ldh [rOBP0], a
     ld a, $1b
     ldh [rOBP1], a
+    
     xor a
     ldh [rSCY], a
     ldh [rSCX], a
     ldh [$bb], a
     ldh [$bc], a
+    
     ldh [rIF], a
     ld a, $07
     ldh [rIE], a
     ldh [$fc], a
+    
     ld a, $00
     ldh [rSTAT], a
     ld a, $87
     ldh [rLCDC], a
+;}
 
-jr_000_0aa9:
+.loop: ;{ 00:0AA9
     ld hl, $cb00
     res 7, [hl]
     ldh a, [hInputRisingEdge]
-    bit 3, a
-        jr nz, jr_000_0aca
+    bit PADB_START, a
+        jr nz, .continueOrExit
 
-    call Call_000_16f2
+    call gameOver_handleInputAndSprite
     call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
-    jr_000_0abf:
+    .waitLoop_B:
         db $76
         ldh a, [hVBlankDoneFlag]
         and a
-    jr z, jr_000_0abf
+    jr z, .waitLoop_B
 
     xor a
     ldh [hVBlankDoneFlag], a
-jr jr_000_0aa9
+jr .loop ;}
 
-jr_000_0aca:
+.continueOrExit:
     ld hl, $cb00
     set 7, [hl]
 
-    jr_000_0acf:
+    .waitLoop_C:
         db $76
         ldh a, [hVBlankDoneFlag]
         and a
-    jr z, jr_000_0acf
+    jr z, .waitLoop_C
 
     xor a
     ldh [hVBlankDoneFlag], a
     ld a, [$c1a3]
     and a
-    jr nz, jr_000_0b14
+    jr nz, .else
         call stopSound
         xor a
         ldh [$fa], a
@@ -1542,38 +1532,40 @@ jr_000_0aca:
         ld a, [currentLevel]
         ld e, a
         ld d, $00
-        ld hl, table_000_0B1A
+        ld hl, .continueWeaponLevelTable
         add hl, de
         ld b, [hl]
         ld a, [$c1a2]
         cp b
-        jr c, jr_000_0b00
+        jr c, .endIf
             ld a, b
             ld [$c1a2], a
-        jr_000_0b00:
+        .endIf:
         ld a, [currentLevel]
         ld e, a
         ld d, $00
-        ld hl, table_000_0B2A ; $0b2a
+        ld hl, .continueStageTable ; $0b2a
         add hl, de
         ld a, [hl]
         ld [currentLevel], a
         call Call_000_1190
         jp Jump_000_065c
-    jr_000_0b14:
+    .else:
         call disableLCD
         jp Jump_000_0194
+;}
 
 ; Continue weapon levels
-table_000_0B1A: ; 00:0B1A
+.continueWeaponLevelTable: ; 00:0B1A
     db $01, $01, $01, $02, $02, $03, $03, $03, $06, $06, $05, $05, $05, $05, $05, $05
-; Level to restart upon continue
-table_000_0B2A: ; 00:0B2A
+; Stage to restart upon continue
+.continueStageTable: ; 00:0B2A
     db $01, $01, $01, $03, $03, $05, $05, $05, $08, $08, $0A, $0A, $0A, $0A, $0A, $0A
+
 
 ; Prep ending
 Jump_000_0b3a:
-    call Call_000_172c
+    call updateTopScore
     ld hl, $cb00
     set 7, [hl]
 
@@ -2831,7 +2823,7 @@ Call_000_1190:
     ld [playerLives], a
     call $4c1d
     ld a, $04
-    ld [$c0c8], a
+    ld [playerHealth], a
     ret
 
 
@@ -2858,7 +2850,7 @@ Call_000_11a8: ; Standard level loading routine
     xor a
     ld [$c341], a
     ld a, $04
-    ld [$c0c8], a
+    ld [playerHealth], a
 ret
 
 
@@ -2896,7 +2888,7 @@ Call_000_11ee: ; 00:11EE
     xor a
     ld [$c0c3], a
     ld a, $04
-    ld [$c0c8], a
+    ld [playerHealth], a
 ret
 
 
@@ -2927,7 +2919,7 @@ jr_000_1247: ; Junk label
     xor a
     ld [$c341], a
     ld a, $04
-    ld [$c0c8], a
+    ld [playerHealth], a
 ret
 
 devMessage_A:; 00:1260 - Developer Message
@@ -3510,215 +3502,199 @@ devMessage_C: ; 00:160E - Developer Message
     db $A6, $C9, $BF, $DE, $B8, $C3, $DE, $DC, $C5, $B2, $20, $21, $21
 
 
-Call_000_162b:
+gameOver_drawScreen: ;{ 00:162B
+    ; Draw text
     ld de, gameOverText
     call loadStringList.call
+    
+    ; Draw high score (left-padded), starting at the most-significant non-zero digit
     ld hl, $99ab
-    ld a, [$c0e5]
+    ld a, [topScoreHi]
     swap a
     and $0f
-    jr nz, jr_000_166e
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0e5]
-    and $0f
-    jr nz, jr_000_1674
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0e4]
-    swap a
-    and $0f
-    jr nz, jr_000_167c
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0e4]
-    and $0f
-    jr nz, jr_000_1682
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0e3]
-    swap a
-    and $0f
-    jr nz, jr_000_168a
-
-    ld a, $25
-    ld [hl+], a
-    jr jr_000_168b
-
-jr_000_166e:
-    ld [hl+], a
-    ld a, [$c0e5]
-    and $0f
-
-jr_000_1674:
-    ld [hl+], a
-    ld a, [$c0e4]
-    swap a
-    and $0f
-
-jr_000_167c:
-    ld [hl+], a
-    ld a, [$c0e4]
-    and $0f
-
-jr_000_1682:
-    ld [hl+], a
-    ld a, [$c0e3]
-    swap a
-    and $0f
-
-jr_000_168a:
-    ld [hl+], a
-
-jr_000_168b:
-    ld a, [$c0e3]
-    and $0f
-    ld [hl+], a
+    jr nz, .topScore_digit6
+        ld a, $25 ; Draw blank for digit 6
+        ld [hl+], a
+        ld a, [topScoreHi]
+        and $0f
+        jr nz, .topScore_digit5
+            ld a, $25 ; Draw blank for digit 5
+            ld [hl+], a
+            ld a, [topScoreMid]
+            swap a
+            and $0f
+            jr nz, .topScore_digit4
+                ld a, $25 ; Draw blank for digit 4
+                ld [hl+], a
+                ld a, [topScoreMid]
+                and $0f
+                jr nz, .topScore_digit3
+                    ld a, $25 ; Draw blank for digit 3
+                    ld [hl+], a
+                    ld a, [topScoreLo]
+                    swap a
+                    and $0f
+                    jr nz, .topScore_digit2
+                        ld a, $25
+                        ld [hl+], a
+                        jr .topScore_digit1
+    .topScore_digit6:
+        ld [hl+], a
+        ld a, [topScoreHi]
+        and $0f
+        .topScore_digit5:
+            ld [hl+], a
+            ld a, [topScoreMid]
+            swap a
+            and $0f
+            .topScore_digit4:
+                ld [hl+], a
+                ld a, [topScoreMid]
+                and $0f
+                .topScore_digit3:
+                    ld [hl+], a
+                    ld a, [topScoreLo]
+                    swap a
+                    and $0f
+                    .topScore_digit2:
+                        ld [hl+], a
+                        .topScore_digit1:
+                            ld a, [topScoreLo]
+                            and $0f
+                            ld [hl+], a
+    
+    ; Draw score (left-padded), starting at the most-significant non-zero digit
     ld hl, $99eb
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     swap a
     and $0f
-    jr nz, jr_000_16ce
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0e0]
-    and $0f
-    jr nz, jr_000_16d4
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0df]
-    swap a
-    and $0f
-    jr nz, jr_000_16dc
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0df]
-    and $0f
-    jr nz, jr_000_16e2
-
-    ld a, $25
-    ld [hl+], a
-    ld a, [$c0de]
-    swap a
-    and $0f
-    jr nz, jr_000_16ea
-
-    ld a, $25
-    ld [hl+], a
-    jr jr_000_16eb
-
-jr_000_16ce:
-    ld [hl+], a
-    ld a, [$c0e0]
-    and $0f
-
-jr_000_16d4:
-    ld [hl+], a
-    ld a, [$c0df]
-    swap a
-    and $0f
-
-jr_000_16dc:
-    ld [hl+], a
-    ld a, [$c0df]
-    and $0f
-
-jr_000_16e2:
-    ld [hl+], a
-    ld a, [$c0de]
-    swap a
-    and $0f
-
-jr_000_16ea:
-    ld [hl+], a
-
-jr_000_16eb:
-    ld a, [$c0de]
-    and $0f
-    ld [hl+], a
-    ret
+    jr nz, .score_digit6
+        ld a, $25
+        ld [hl+], a
+        ld a, [playerScoreHi]
+        and $0f
+        jr nz, .score_digit5
+            ld a, $25
+            ld [hl+], a
+            ld a, [playerScoreMid]
+            swap a
+            and $0f
+            jr nz, .score_digit4
+                ld a, $25
+                ld [hl+], a
+                ld a, [playerScoreMid]
+                and $0f
+                jr nz, .score_digit3
+                    ld a, $25
+                    ld [hl+], a
+                    ld a, [playerScoreLo]
+                    swap a
+                    and $0f
+                    jr nz, .score_digit2
+                        ld a, $25
+                        ld [hl+], a
+                        jr .score_digit1
+    .score_digit6:
+        ld [hl+], a
+        ld a, [playerScoreHi]
+        and $0f
+        .score_digit5:
+            ld [hl+], a
+            ld a, [playerScoreMid]
+            swap a
+            and $0f
+            .score_digit4:
+                ld [hl+], a
+                ld a, [playerScoreMid]
+                and $0f
+                .score_digit3:
+                    ld [hl+], a
+                    ld a, [playerScoreLo]
+                    swap a
+                    and $0f
+                    .score_digit2:
+                        ld [hl+], a
+                        .score_digit1:
+                            ld a, [playerScoreLo]
+                            and $0f
+                            ld [hl+], a
+    
+ret ;}
 
 
-Call_000_16f2:
+gameOver_handleInputAndSprite: ;{ 00:16F6
+; Handle input
+    ; Toggle option with select
     ldh a, [hInputRisingEdge]
-    bit 2, a
-    jr z, jr_000_1700
+    bit PADB_SELECT, a
+    jr z, .endIf_A
+        ld a, [$c1a3]
+        xor $10
+        ld [$c1a3], a
+    .endIf_A:
 
-    ld a, [$c1a3]
-    xor $10
-    ld [$c1a3], a
-
-jr_000_1700:
+    ; Select END with down
     ldh a, [hInputRisingEdge]
-    bit 7, a
-    jr z, jr_000_170b
+    bit PADB_DOWN, a
+    jr z, .endIf_B
+        ld a, $10
+        ld [$c1a3], a
+    .endIf_B:
 
-    ld a, $10
-    ld [$c1a3], a
-
-jr_000_170b:
+    ; Select continue with up
     ldh a, [hInputRisingEdge]
-    bit 6, a
-    jr z, jr_000_1715
+    bit PADB_UP, a
+    jr z, .endIf_C
+        xor a
+        ld [$c1a3], a
+    .endIf_C:
 
-    xor a
-    ld [$c1a3], a
-
-jr_000_1715:
+; Handle sprite
+    ; Set sprite
     ld e, $00
+    ; Batwing case
     ld a, [$c0c4]
     and a
-    jr z, jr_000_171f
-
-    ld e, $50
-
-jr_000_171f:
+    jr z, .endIf_D
+        ld e, $50
+    .endIf_D:
+    ; Adjust Y offset
     ld a, [$c1a3]
     add $a4
     ld b, a
+    ; Set X offset
     ld c, $20
+    ; Set attributes
     xor a
     call drawMetasprite
-    ret
+ret ;}
 
-
-Call_000_172c:
-    ld hl, $c0e5
-    ld a, [$c0e0]
+updateTopScore: ;{ 00:172C
+    ld hl, topScoreHi
+    ld a, [playerScoreHi]
     cp [hl]
-    ret c
+        ret c
 
-    jr nz, jr_000_1745
+    jr nz, .endIf
+        dec hl
+        ld a, [playerScoreMid]
+        cp [hl]
+            ret c
+        jr nz, .endIf
+            dec hl
+            ld a, [playerScoreLo]
+            cp [hl]
+                ret c
+                ret z
+    .endIf:
 
-    dec hl
-    ld a, [$c0df]
-    cp [hl]
-    ret c
-
-    jr nz, jr_000_1745
-
-    dec hl
-    ld a, [$c0de]
-    cp [hl]
-    ret c
-
-    ret z
-
-jr_000_1745:
-    ld a, [$c0e0]
-    ld [$c0e5], a
-    ld a, [$c0df]
-    ld [$c0e4], a
-    ld a, [$c0de]
-    ld [$c0e3], a
-    ret
+    ld a, [playerScoreHi]
+    ld [topScoreHi], a
+    ld a, [playerScoreMid]
+    ld [topScoreMid], a
+    ld a, [playerScoreLo]
+    ld [topScoreLo], a
+ret ;}
 
 
 loadLevel_drawHud: ;{ 00:1758
@@ -3750,33 +3726,33 @@ loadLevel_drawHud: ;{ 00:1758
 ; Draw score, from MSB to LSB
     ld hl, $9825
     ; First do a series of checks to find the first non-zero digit
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     swap a
     and $0f
     jr nz, jr_000_17b5
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     and $0f
     jr nz, jr_000_17bb
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     swap a
     and $0f
     jr nz, jr_000_17c3
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     and $0f
     jr nz, jr_000_17c9
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     swap a
     and $0f
     jr nz, jr_000_17d1
@@ -3788,23 +3764,23 @@ loadLevel_drawHud: ;{ 00:1758
 ; Then start drawing the numbers
 jr_000_17b5:
     ld [hl+], a
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     and $0f
 
 jr_000_17bb:
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     swap a
     and $0f
 
 jr_000_17c3:
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     and $0f
 
 jr_000_17c9:
     ld [hl+], a
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     swap a
     and $0f
 
@@ -3812,7 +3788,7 @@ jr_000_17d1:
     ld [hl+], a
 
 jr_000_17d2:
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     and $0f
     ld [hl+], a
 
@@ -3821,7 +3797,7 @@ jr_000_17d2:
     ld a, [playerLives]
     ld [hl], a
 ; Draw health bar
-    ld a, [$c0c8]
+    ld a, [playerHealth]
     and $07
     ld d, $00
     add a
@@ -3874,7 +3850,7 @@ ret
 
 
 Call_000_1821:
-    ld hl, $c0de
+    ld hl, playerScoreLo
     xor a
     ld [hl+], a
     ld [hl+], a
@@ -3900,33 +3876,33 @@ Call_000_182c:
     ld [hl+], a
     ld a, $06
     ld [hl+], a
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     swap a
     and $0f
     jr nz, jr_000_1881
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     and $0f
     jr nz, jr_000_1887
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     swap a
     and $0f
     jr nz, jr_000_188f
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     and $0f
     jr nz, jr_000_1895
 
     ld a, $25
     ld [hl+], a
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     swap a
     and $0f
     jr nz, jr_000_189d
@@ -3937,23 +3913,23 @@ Call_000_182c:
 
 jr_000_1881:
     ld [hl+], a
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     and $0f
 
 jr_000_1887:
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     swap a
     and $0f
 
 jr_000_188f:
     ld [hl+], a
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     and $0f
 
 jr_000_1895:
     ld [hl+], a
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     swap a
     and $0f
 
@@ -3961,7 +3937,7 @@ jr_000_189d:
     ld [hl+], a
 
 jr_000_189e:
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     and $0f
     ld [hl+], a
     xor a
@@ -4203,7 +4179,7 @@ jr_000_19b9:
     db $10
 
 Call_000_19c1:
-    ld a, [$c0c8]
+    ld a, [playerHealth]
     and $07
     ld d, $00
     add a
@@ -4246,18 +4222,18 @@ jr_000_19d5: ; Junk label
 
 
 Call_000_19fa:
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     add l
     daa
-    ld [$c0de], a
-    ld a, [$c0df]
+    ld [playerScoreLo], a
+    ld a, [playerScoreMid]
     adc h
     daa
-    ld [$c0df], a
-    ld a, [$c0e0]
+    ld [playerScoreMid], a
+    ld a, [playerScoreHi]
     adc $00
     daa
-    ld [$c0e0], a
+    ld [playerScoreHi], a
     ld a, $ff
     ld [$c0dd], a
     jr c, jr_000_1a45
@@ -4271,19 +4247,19 @@ Call_000_1a1b:
     ld e, a
     ld hl, $1a51
     add hl, de
-    ld a, [$c0de]
+    ld a, [playerScoreLo]
     add [hl]
     daa
-    ld [$c0de], a
+    ld [playerScoreLo], a
     inc hl
-    ld a, [$c0df]
+    ld a, [playerScoreMid]
     adc [hl]
     daa
-    ld [$c0df], a
-    ld a, [$c0e0]
+    ld [playerScoreMid], a
+    ld a, [playerScoreHi]
     adc $00
     daa
-    ld [$c0e0], a
+    ld [playerScoreHi], a
     ld a, $ff
     ld [$c0dd], a
     jr c, jr_000_1a45
@@ -4293,9 +4269,9 @@ Call_000_1a1b:
 
 jr_000_1a45:
     ld a, $99
-    ld [$c0e0], a
-    ld [$c0df], a
-    ld [$c0de], a
+    ld [playerScoreHi], a
+    ld [playerScoreMid], a
+    ld [playerScoreLo], a
     ret
 
 ;{ start of some data
@@ -5599,15 +5575,15 @@ loadLevel_drawReadyText: ;{ ; 00:2595
     ld a, $05
     ld [hl+], a
     ; Manually write tile data (!!)
-    ld a, $1b
+    ld a, $1b ; R
     ld [hl+], a
-    ld a, $0e
+    ld a, $0e ; E
     ld [hl+], a
-    ld a, $0a
+    ld a, $0a ; A
     ld [hl+], a
-    ld a, $0d
+    ld a, $0d ; D
     ld [hl+], a
-    ld a, $22
+    ld a, $22 ; Y
     ld [hl+], a
     ; Clear next byte so it is not interpreted as a VRAM packet
     xor a
@@ -5677,19 +5653,30 @@ loadLevel_drawPlayer: ;{ 00:25F2
 ret ;}
 
 gameOverText: ; 00:2607 - String list format
+    ;                   G    A    M    E              O    V    E    R
     db $98, $65, $0A, $10, $0A, $16, $0E, $25, $25, $18, $1F, $0E, $1B
+    ;                   C    O    N    T    I    N    U    E
     db $98, $E7, $08, $0C, $18, $17, $1D, $12, $17, $1E, $0E
+    ;                   E              N              D
     db $99, $27, $07, $0E, $25, $25, $17, $25, $25, $0D
+    ;                   T    O    P         S    C    O    R    E
     db $99, $A2, $09, $1D, $18, $19, $25, $1C, $0C, $18, $1B, $0E
-    db $99, $B1, $01, $00
+    ;                   0
+    db $99, $B1, $01, $00 ; Ones digit of top score
+    ;                   S    C    O    R    E
     db $99, $E6, $05, $1C, $0C, $18, $1B, $0E
-    db $99, $F1, $01, $00
+    ;                   0
+    db $99, $F1, $01, $00 ; Ones digit of score
     db $00
 
 baseHudText: ; 00:2646 - HUD base tilemap (string list format)
+    ;                   S    T    A    G    E
     db $98, $00, $05, $1C, $1D, $0A, $10, $0E
+    ;                   W    E    A    P    O    N
     db $98, $0A, $06, $20, $0E, $0A, $19, $18, $17
+    ;                   S    C    O    R    E
     db $98, $20, $05, $1C, $0C, $18, $1B, $0E
+    ;                   0      [bat]   X           [bat]
     db $98, $2B, $07, $00, $25, $3C, $21, $25, $25, $3C
     db $00
     
@@ -5700,8 +5687,8 @@ healthBarTilemaps: ; 00:266A
     db $2e, $2b, $2a, $2c ; 3
     db $29, $2a, $2a, $2c ; 4 (full)
 
-Call_000_267e:
-    call Call_000_172c
+Call_000_267e: ; 00:267E
+    call updateTopScore
     ld d, $00
     ld a, [vBlank_updateBufferIndex]
     ld e, a
@@ -5713,82 +5700,84 @@ Call_000_267e:
     ld [hl+], a
     ld a, $14
     ld [hl+], a
-    ld a, $25
+    
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, $1d
+    ld a, $1d ; T
     ld [hl+], a
-    ld a, $18
+    ld a, $18 ; O
     ld [hl+], a
-    ld a, $19
+    ld a, $19 ; P
     ld [hl+], a
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, $1c
+    ld a, $1c ; S
     ld [hl+], a
-    ld a, $0c
+    ld a, $0c ; C
     ld [hl+], a
-    ld a, $18
+    ld a, $18 ; O
     ld [hl+], a
-    ld a, $1b
+    ld a, $1b ; R
     ld [hl+], a
-    ld a, $0e
+    ld a, $0e ; E
     ld [hl+], a
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, [$c0e5]
+    
+    ld a, [topScoreHi]
     swap a
     and $0f
     jr nz, jr_000_26ee
 
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, [$c0e5]
+    ld a, [topScoreHi]
     and $0f
     jr nz, jr_000_26f4
 
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, [$c0e4]
+    ld a, [topScoreMid]
     swap a
     and $0f
     jr nz, jr_000_26fc
 
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, [$c0e4]
+    ld a, [topScoreMid]
     and $0f
     jr nz, jr_000_2702
 
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
-    ld a, [$c0e3]
+    ld a, [topScoreLo]
     swap a
     and $0f
     jr nz, jr_000_270a
 
-    ld a, $25
+    ld a, $25 ; Space
     ld [hl+], a
     jr jr_000_270b
 
 jr_000_26ee:
     ld [hl+], a
-    ld a, [$c0e5]
+    ld a, [topScoreHi]
     and $0f
 
 jr_000_26f4:
     ld [hl+], a
-    ld a, [$c0e4]
+    ld a, [topScoreMid]
     swap a
     and $0f
 
 jr_000_26fc:
     ld [hl+], a
-    ld a, [$c0e4]
+    ld a, [topScoreMid]
     and $0f
 
 jr_000_2702:
     ld [hl+], a
-    ld a, [$c0e3]
+    ld a, [topScoreLo]
     swap a
     and $0f
 
@@ -5796,7 +5785,7 @@ jr_000_270a:
     ld [hl+], a
 
 jr_000_270b:
-    ld a, [$c0e3]
+    ld a, [topScoreLo]
     and $0f
     ld [hl+], a
     ld a, $00
@@ -5827,7 +5816,7 @@ jr_000_272b:
     ld d, $00
     ld hl, $2780
     add hl, de
-    ld a, [$c0e0]
+    ld a, [playerScoreHi]
     cp [hl]
     jr c, jr_000_2754
 
@@ -8065,12 +8054,12 @@ table_000_3319:
 
     ld a, $28
     call playSound
-    ld a, [$c0c8]
+    ld a, [playerHealth]
     cp $04
     ret z
 
     inc a
-    ld [$c0c8], a
+    ld [playerHealth], a
     call Call_000_19c1
     ret
 

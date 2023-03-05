@@ -1988,9 +1988,9 @@ jr_001_4aca: ;{ common branch to the above 3 calls
         ret nz
     ld a, $c0
     ldh [$a1], a
-    ld a, [$c0c8]
+    ld a, [playerHealth]
     dec a
-    ld [$c0c8], a
+    ld [playerHealth], a
     jr nz, jr_001_4ae9
         ld a, $27
         call $308d
@@ -2715,9 +2715,9 @@ Jump_001_4eac:
     call Call_001_4c31
     jr nc, jr_001_4edf
 
-    ld a, [$c0c8]
+    ld a, [playerHealth]
     dec a
-    ld [$c0c8], a
+    ld [playerHealth], a
     jr nz, jr_001_4ed5
 
     ld a, $15
