@@ -11,6 +11,7 @@ oamBuffer: ds $A0 ; $C000-C09F
 
 ; $C0BD - Decrementing Timer (hi)
 ; $C0BE - (lo)
+pauseFlag = $C0BE ; Pause Flag
 
 currentLevel = $C0C2 ; Level Number
 ; $00: broken Gotham City 1 [cutscene 1 graphics]
@@ -51,8 +52,8 @@ weaponLevel = $C1A2 ; Batman's onscreen projectile limit
 ; $C800 - $153 bytes - Audio RAM??
 
 ; $CB00 - VBlank Flag
-; $CB01 - VBlank update index
-; $CB02 - VBlank VRAM updates ($HI, $LO, $NUM, bytes...)
+vBlank_updateBufferIndex = $CB01 ; VBlank update index
+vBlank_updateBuffer = $CB02 ; VBlank VRAM updates ($HI, $LO, $LEN, bytes...)
 
 ; $CBFF - Top of stack
 

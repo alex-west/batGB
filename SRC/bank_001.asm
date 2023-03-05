@@ -1061,9 +1061,9 @@ jr_001_458a:
     ld c, l
     ld b, h
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld d, $4c
     swap c
@@ -1110,9 +1110,9 @@ jr_001_45ce:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $04
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     pop bc
     ld a, [$c1a3]
     ld l, a
@@ -1202,9 +1202,9 @@ Jump_001_4649:
     ld [hl+], a
     ld [hl], a
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $99
     ld [hl+], a
@@ -1228,9 +1228,9 @@ Jump_001_4649:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $0c
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ret
 
 
@@ -3994,9 +3994,9 @@ ret
 
 Call_001_601c:
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     push hl
     ld a, [currentLevel]
@@ -4027,9 +4027,9 @@ Call_001_601c:
 
     xor a
     ld [hl], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $06
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
 ret
 
 stageNumbers: ; 01:6053 - Stage numbers (e.g. 1-1, 1-2, etc.)

@@ -782,9 +782,9 @@ jr_006_6c5c:
     push af
     push hl
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     pop de
     ld a, d
@@ -797,9 +797,9 @@ jr_006_6c5c:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $04
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ld a, [$c4d7]
     add $01
     ld [$c4d7], a
@@ -877,9 +877,9 @@ Call_006_6e9a:
 
 jr_006_6ead:
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, [$c4df]
     ld [hl+], a
@@ -897,9 +897,9 @@ jr_006_6ec5:
 
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $17
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ld a, [$c4e0]
     and a
     jr z, jr_006_6ee4
@@ -943,9 +943,9 @@ Call_006_6ef9: ; 06:6EF9
     ld l, a
     push hl
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     pop de
     ld a, d
@@ -1007,9 +1007,9 @@ jr_006_6f67:
 jr_006_6f82:
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $0d
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ld a, [$c4d7]
     add $20
     ld [$c4d7], a

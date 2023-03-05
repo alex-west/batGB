@@ -111,8 +111,8 @@ Jump_000_0194:
     call loadProc_A
     call clearOAM
     xor a
-    ld [$cb02], a
-    ld [$cb01], a
+    ld [vBlank_updateBuffer], a
+    ld [vBlank_updateBufferIndex], a
     ld [$cb00], a
     ld a, $40
     ldh [$9a], a
@@ -501,7 +501,7 @@ jr_000_041c: ;{ Some loop
     ld a, [$c0bd]
     bit 4, a
     call z, Call_000_2795
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -593,7 +593,7 @@ jr_000_04d2: ;{
         jp nz, Jump_000_0595
 
     call selectMode_handleInput ;$5fed
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -649,8 +649,8 @@ soundTest_proc: ; 00:04F5
     call loadStringList.call
     
     xor a
-    ld [$cb02], a
-    ld [$cb01], a
+    ld [vBlank_updateBuffer], a
+    ld [vBlank_updateBufferIndex], a
     ld [$cb00], a
     
     xor a
@@ -808,7 +808,7 @@ jr_000_05f1:
         ldh [hCurrentBank], a
     ei
     
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -846,14 +846,14 @@ jr_000_065c:
     ldh [hInputPressed], a
 
 Jump_000_0673: ; Start level
-    call Call_000_10af
+    call oam_clearUnused
     xor a
     ldh [rSCY], a
     ldh [rSCX], a
     ldh [$bb], a
     ldh [$bc], a
-    ld [$cb02], a
-    ld [$cb01], a
+    ld [vBlank_updateBuffer], a
+    ld [vBlank_updateBufferIndex], a
     ld [$cb00], a
     ld a, $25
     call draw_fillTilemap
@@ -982,12 +982,12 @@ jr_000_0749: ;{ Another game loop
     ld [$c1a3], a
     and $10
     push af
-    call nz, Call_000_25c2
+        call nz, loadLevel_undrawReadyText
     pop af
-    call z, Call_000_2595
-    call Call_000_25f2
+    call z, loadLevel_drawReadyText
+    call loadLevel_drawPlayer
     call $4c73
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1018,8 +1018,8 @@ jr_000_0781:
         ldh [$9a], a
     jr_000_079a:
 
-    call Call_000_2565
-    call Call_000_25c2
+    call loadLevel_undrawLevelName
+    call loadLevel_undrawReadyText
     xor a
     ld [$c0be], a
     ld hl, $cb00
@@ -1035,9 +1035,12 @@ jr_000_0781:
     ldh [hVBlankDoneFlag], a
 
 Jump_000_07b2: ;{ Main game loop ?
+    
     ld hl, $cb00
     res 7, [hl]
+    
     call Call_000_14eb
+    
     ld a, [$c0be]
     and a
     jr nz, jr_000_0834
@@ -1045,6 +1048,7 @@ Jump_000_07b2: ;{ Main game loop ?
         ldh [$8c], a
         ldh a, [hInputRisingEdge]
         ldh [$8d], a
+        
         ld a, [$c0c4]
         and a
         jr nz, jr_000_07eb
@@ -1094,7 +1098,7 @@ Jump_000_07b2: ;{ Main game loop ?
             call Call_000_1312
         jr_000_081e:
     
-        call Call_000_10af
+        call oam_clearUnused
         ldh a, [$91]
         cp $e0
             jp nc, Jump_000_08b5
@@ -1155,7 +1159,7 @@ jr_000_0865: ;{
     ld a, [$c0c4]
     and a
     call nz, $4758
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1184,7 +1188,7 @@ jr_000_0896:
     ldh [$fa], a
     xor a
     ld [$c0a0], a
-    call Call_000_10af
+    call oam_clearUnused
     jp Jump_000_0595 ; Start next level
 
 
@@ -1262,7 +1266,7 @@ jr_000_0926:
     jp z, Jump_000_09fc
 
 jr_000_0934:
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1297,7 +1301,7 @@ jr_000_0956:
     ldh [$fa], a
     xor a
     ld [$c0a0], a
-    call Call_000_10af
+    call oam_clearUnused
     ld a, [playerLives]
     cp $ff
         jp z, Jump_000_0a59
@@ -1340,7 +1344,7 @@ jr_000_0995:
 
     call Call_000_1397
     call Call_000_135e
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1377,7 +1381,7 @@ jr_000_09d8:
 
     call Call_000_1397
     call Call_000_135e
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1431,7 +1435,7 @@ jr_000_0a1c:
     ld a, [$c0c5]
     bit 7, a
     call nz, Call_000_13f8
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1500,7 +1504,7 @@ jr_000_0aa9:
         jr nz, jr_000_0aca
 
     call Call_000_16f2
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1534,7 +1538,7 @@ jr_000_0aca:
         ldh [$fa], a
         xor a
         ld [$c0a0], a
-        call Call_000_10af
+        call oam_clearUnused
         ld a, [currentLevel]
         ld e, a
         ld d, $00
@@ -1625,7 +1629,7 @@ jr_000_0b76: ;{ Ending cutscene loop
         ld [$2000], a
         ldh [hCurrentBank], a
     ei
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1691,7 +1695,7 @@ jr_000_0bdc: ;{ End credits loop
         ld [$2000], a
         ldh [hCurrentBank], a
     ei
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1749,7 +1753,7 @@ jr_000_0c2c: ;{ Another ending loop?
         ld [$2000], a
         ldh [hCurrentBank], a
     ei
-    call Call_000_10af
+    call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
 
@@ -1775,7 +1779,7 @@ jr_000_0c6f:
 
     xor a
     ldh [hVBlankDoneFlag], a
-    call Call_000_10af
+    call oam_clearUnused
     ld a, [$c0b5]
     cp $ff
         jp z, Jump_000_0175
@@ -1820,11 +1824,11 @@ vBlankHandler: ;{ 00:0C9C
     ld hl, $cb00
     bit 7, [hl]
     jr z, jr_000_0cda
-        ld de, $cb02
+        ld de, vBlank_updateBuffer
         call loadStringList.call
         xor a
-        ld [$cb01], a
-        ld [$cb02], a
+        ld [vBlank_updateBufferIndex], a
+        ld [vBlank_updateBuffer], a
     jr_000_0cda:
 
     ldh a, [$fa]
@@ -1947,8 +1951,8 @@ Jump_000_0d44:
     ldh [rLYC], a
     ei
     xor a
-    ld [$cb01], a
-    ld [$cb02], a
+    ld [vBlank_updateBufferIndex], a
+    ld [vBlank_updateBuffer], a
     ld a, $20
     ldh [rP1], a
     ldh a, [rP1]
@@ -2630,7 +2634,7 @@ jr_000_10aa:
 ret
 
 
-Call_000_10af: ;{ 00:10AF - Clear unused OAM
+oam_clearUnused: ;{ 00:10AF - Clear unused OAM
     ldh a, [$fa]
     bit 7, a
     jr nz, .else
@@ -3383,9 +3387,9 @@ Call_000_1560:
 
 Call_000_1576:
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -3399,9 +3403,9 @@ Call_000_1576:
 Call_000_158a:
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $08
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ret
 
 
@@ -3886,9 +3890,9 @@ Call_000_182c:
 
     call Call_000_2727
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -3962,9 +3966,9 @@ jr_000_189e:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $09
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     xor a
     ld [$c0dd], a
     ret
@@ -4075,9 +4079,9 @@ jr_000_1919:
     add hl, de
     ld b, [hl]
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -4093,9 +4097,9 @@ jr_000_1919:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $06
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ret
 
 
@@ -4209,11 +4213,11 @@ Call_000_19c1:
     add hl, de
     push hl
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
 
 jr_000_19d5: ; Junk label
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     pop de
     ld a, $98
@@ -4235,9 +4239,9 @@ jr_000_19d5: ; Junk label
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $07
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ret
 
 
@@ -4355,9 +4359,9 @@ ret ;}
 ; Preps VRAM update for soundtest
 soundTest_drawNumber: ;{ 00:1A9F
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -4371,9 +4375,9 @@ soundTest_drawNumber: ;{ 00:1A9F
     ld [hl+], a
     xor a
     ld [hl], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $05
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
 ret ;}
 
 ; 00:1AC3
@@ -5537,53 +5541,64 @@ levelName_vsJoker: ; 00:254F
     db $99, $01, $12, $25, $0B, $0A, $1D, $16, $0A, $17, $25, $1F, $1C, $25, $13, $18, $14, $0E, $1B, $25, $25, $00
 ;}
 
-Call_000_2565:
+loadLevel_undrawLevelName: ;{ 00:2565
+    ; Set HL to start of next packet
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
+    
+    ; Set VRAM dest to $9901
     ld a, $99
     ld [hl+], a
     ld a, $01
     ld [hl+], a
+    ; Set length
     ld a, $12
     ld [hl+], a
+    
+    ; Copy $12 bytes of level to buffer
     ld de, $cc16
     ld b, $12
-
-jr_000_257d:
-    ld a, [de]
-    ld [hl+], a
-    push hl
-    ld hl, $0010
-    add hl, de
-    ld e, l
-    ld d, h
-    pop hl
-    dec b
-    jr nz, jr_000_257d
-
+    .loop:
+        ld a, [de]
+        ld [hl+], a
+        push hl
+        ld hl, $0010
+        add hl, de
+        ld e, l
+        ld d, h
+        pop hl
+        dec b
+    jr nz, .loop
+    
+    ; Clear next byte (so it's not interpreted as another VRAM packet)
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    
+    ; Increment index
+    ld a, [vBlank_updateBufferIndex]
     add $15
-    ld [$cb01], a
-    ret
+    ld [vBlank_updateBufferIndex], a
+ret ;}
 
-
-Call_000_2595:
+loadLevel_drawReadyText: ;{ ; 00:2595
+    ; Set HL to start of next packet
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
+    ; Set VRAM dest to $9987
     ld a, $99
     ld [hl+], a
     ld a, $87
     ld [hl+], a
+    ; Set length
     ld a, $05
     ld [hl+], a
+    ; Manually write tile data (!!)
     ld a, $1b
     ld [hl+], a
     ld a, $0e
@@ -5594,77 +5609,89 @@ Call_000_2595:
     ld [hl+], a
     ld a, $22
     ld [hl+], a
+    ; Clear next byte so it is not interpreted as a VRAM packet
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ; Increment index
+    ld a, [vBlank_updateBufferIndex]
     add $08
-    ld [$cb01], a
-    ret
+    ld [vBlank_updateBufferIndex], a
+ret ;}
 
-
-Call_000_25c2:
+loadLevel_undrawReadyText: ;{ 00:25C2
+    ; Set HL to start of next packet
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
+    ; Set VRAM dest to $9987
     ld a, $99
     ld [hl+], a
     ld a, $87
     ld [hl+], a
+    ; Set length
     ld a, $05
     ld [hl+], a
+    ; Copy level data to buffer
     ld de, $cc7a
     ld b, $05
-
-jr_000_25da:
-    ld a, [de]
-    ld [hl+], a
-    push hl
-    ld hl, $0010
-    add hl, de
-    ld e, l
-    ld d, h
-    pop hl
-    dec b
-    jr nz, jr_000_25da
-
+    .loop:
+        ld a, [de]
+        ld [hl+], a
+        push hl
+        ld hl, $0010
+        add hl, de
+        ld e, l
+        ld d, h
+        pop hl
+        dec b
+    jr nz, .loop
+    ; Clear next byte so it is not interpreted as a VRAM packet
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ; Increment index
+    ld a, [vBlank_updateBufferIndex]
     add $08
-    ld [$cb01], a
-    ret
+    ld [vBlank_updateBufferIndex], a
+ret ;}
 
-
-Call_000_25f2:
+loadLevel_drawPlayer: ;{ 00:25F2
+    ; Set metasprite number
     xor a
     ld e, a
+    ; Check if Batwing level
     ld a, [$c0c4]
     and a
-    jr z, jr_000_25fc
-
-    ld e, $50
-
-jr_000_25fc:
+    jr z, .endIf
+        ld e, $50
+    .endIf:
+    ; Set Y and X
     ldh a, [$8f]
     ld b, a
     ldh a, [$91]
     ld c, a
+    ; Set attributes
     xor a
     call drawMetasprite
-    ret
+ret ;}
 
 gameOverText: ; 00:2607 - String list format
-    db $98, $65, $0A, $10, $0A, $16, $0E, $25, $25, $18, $1F, $0E, $1B, $98, $E7, $08
-    db $0C, $18, $17, $1D, $12, $17, $1E, $0E, $99, $27, $07, $0E, $25, $25, $17, $25
-    db $25, $0D, $99, $A2, $09, $1D, $18, $19, $25, $1C, $0C, $18, $1B, $0E, $99, $B1
-    db $01, $00, $99, $E6, $05, $1C, $0C, $18, $1B, $0E, $99, $F1, $01, $00, $00
+    db $98, $65, $0A, $10, $0A, $16, $0E, $25, $25, $18, $1F, $0E, $1B
+    db $98, $E7, $08, $0C, $18, $17, $1D, $12, $17, $1E, $0E
+    db $99, $27, $07, $0E, $25, $25, $17, $25, $25, $0D
+    db $99, $A2, $09, $1D, $18, $19, $25, $1C, $0C, $18, $1B, $0E
+    db $99, $B1, $01, $00
+    db $99, $E6, $05, $1C, $0C, $18, $1B, $0E
+    db $99, $F1, $01, $00
+    db $00
 
 baseHudText: ; 00:2646 - HUD base tilemap (string list format)
-    db $98, $00, $05, $1C, $1D, $0A, $10, $0E, $98, $0A, $06, $20, $0E, $0A, $19, $18
-    db $17, $98, $20, $05, $1C, $0C, $18, $1B, $0E, $98, $2B, $07, $00, $25, $3C, $21
-    db $25, $25, $3C, $00
+    db $98, $00, $05, $1C, $1D, $0A, $10, $0E
+    db $98, $0A, $06, $20, $0E, $0A, $19, $18, $17
+    db $98, $20, $05, $1C, $0C, $18, $1B, $0E
+    db $98, $2B, $07, $00, $25, $3C, $21, $25, $25, $3C
+    db $00
     
 healthBarTilemaps: ; 00:266A
     db $2e, $2f, $2f, $3e ; 0
@@ -5676,9 +5703,9 @@ healthBarTilemaps: ; 00:266A
 Call_000_267e:
     call Call_000_172c
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -5779,9 +5806,9 @@ jr_000_270b:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $17
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     xor a
     ld [$c0dd], a
     ret
@@ -5820,9 +5847,9 @@ jr_000_2754:
     ret z
 
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -5834,9 +5861,9 @@ jr_000_2754:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $04
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ld a, $29
     call playSound
     ret
@@ -5867,9 +5894,9 @@ Call_000_2795:
 
 jr_000_2798:
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld e, c
     ld d, b
@@ -5883,9 +5910,9 @@ jr_000_2798:
     jr nz, jr_000_27a6
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $0d
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
 ret ;}
 
 pushStartText: ; 00:27B7
@@ -7909,9 +7936,9 @@ jr_000_32ca:
     ld c, l
     ld b, h
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld d, $4c
     swap c
@@ -7941,9 +7968,9 @@ jr_000_32ca:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $04
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ldh a, [$9b]
     and $0f
     add a
@@ -8091,9 +8118,9 @@ jr_000_33fd:
 
 
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, $98
     ld [hl+], a
@@ -8107,9 +8134,9 @@ jr_000_33fd:
     ld [hl+], a
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $04
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ld a, $29
     call playSound
     ret
@@ -9207,9 +9234,9 @@ jr_000_3a43:
 
 Call_000_3a49:
     ld d, $00
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     ld e, a
-    ld hl, $cb02
+    ld hl, vBlank_updateBuffer
     add hl, de
     ld a, [$c0ed]
     ld e, a
@@ -9235,9 +9262,9 @@ jr_000_3a6a:
 
     xor a
     ld [hl+], a
-    ld a, [$cb01]
+    ld a, [vBlank_updateBufferIndex]
     add $13
-    ld [$cb01], a
+    ld [vBlank_updateBufferIndex], a
     ld a, e
     ld [$c0ed], a
     ld a, d
