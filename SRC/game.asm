@@ -4,6 +4,7 @@
 ; https://github.com/mattcurrie/mgbdis
 
 INCLUDE "hardware.inc"
+INCLUDE "macros.asm"
 INCLUDE "wram.asm"
 INCLUDE "hram.asm"
 

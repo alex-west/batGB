@@ -280,22 +280,17 @@ Jump_000_02c6:
     sbc $00
     ld [$c0be], a
     jr nc, jr_000_02fc
-
-    call disableLCD
-    jp Jump_000_0194
-
-
-jr_000_02fc:
-    ld a, [$c1a5]
-    cp $ff
-    jr z, jr_000_0368
-
-    and a
-    jr z, jr_000_030d
-
-    dec a
-    ld [$c1a5], a
-    jp Jump_000_03ac
+        call disableLCD
+        jp Jump_000_0194
+    jr_000_02fc:
+        ld a, [$c1a5]
+        cp $ff
+            jr z, jr_000_0368
+        and a
+            jr z, jr_000_030d
+        dec a
+        ld [$c1a5], a
+        jp Jump_000_03ac
 
 
 jr_000_030d:
@@ -438,8 +433,8 @@ jr_000_03f3:
     ldh a, [hInputPressed]
     ld [$c0b4], a
     and $f7
-    xor $50
-        jp z, soundTest_proc
+    xor PADF_UP | PADF_RIGHT ; $50
+        jp z, mode_soundTest
 
     ld a, $00
     ld [$c0bd], a
@@ -523,6 +518,8 @@ jr_000_0467:
         jp z, Jump_000_05a3
 
 ; Select Mode
+mode_selectMode: ;{
+.prep:
     call disableLCD
     
     xor a
@@ -569,11 +566,11 @@ jr_000_0467:
     ld a, $81
     ldh [rLCDC], a
 
-jr_000_04d2: ;{
+.loop: ;{
     ld hl, $cb00
     res 7, [hl]
     ld hl, hInputRisingEdge
-    bit 3, [hl]
+    bit PADB_START, [hl]
         jp nz, Jump_000_0595
 
     call selectMode_handleInput ;$5fed
@@ -581,18 +578,20 @@ jr_000_04d2: ;{
     ld hl, $cb00
     set 7, [hl]
 
-    jr_000_04ea:
+    .waitLoop:
         db $76
         ldh a, [hVBlankDoneFlag]
         and a
-    jr z, jr_000_04ea
+    jr z, .waitLoop
 
     xor a
     ldh [hVBlankDoneFlag], a
-jr jr_000_04d2 ;}
+jr .loop ;}
+;}
 
 ; Sound test
-soundTest_proc: ; 00:04F5
+mode_soundTest: ;{ 00:04F5
+.prep:
     call disableLCD
     
     xor a
@@ -690,6 +689,7 @@ soundTest_proc: ; 00:04F5
     xor a
     ldh [hVBlankDoneFlag], a
 jr .loop ;}
+;}
 
 soundTest_songList: ; 00:058A
     db $01, $09, $02, $0C, $0B, $0D, $0F, $06, $08, $05, $0E
@@ -737,19 +737,9 @@ Jump_000_05a3:
     xor a
     ld [$c0b2], a
     ld [$c0b3], a
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneLoad_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call cutsceneLoad_farCall
+    popBank
 
 jr_000_05f1:
     ld hl, $cb00
@@ -775,22 +765,12 @@ jr_000_05f1:
     jr_000_061c:
 
     ldh a, [hInputRisingEdge]
-    bit 3, a
+    bit PADB_START, a
         jr nz, jr_000_065c
 
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneHandle_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call cutsceneHandle_farCall
+    popBank
     
     call oam_clearUnused
     ld hl, $cb00
@@ -1023,7 +1003,7 @@ Jump_000_07b2: ;{ Main game loop ?
     ld hl, $cb00
     res 7, [hl]
     
-    call Call_000_14eb
+    call mainGame_pauseHandler
     
     ld a, [$c0be]
     and a
@@ -1039,10 +1019,10 @@ Jump_000_07b2: ;{ Main game loop ?
             ldh a, [$91]
             cp $8c
             jr c, jr_000_07eb
-                ldh a, [$98]
+                ldh a, [hCamera_xScreen]
                 cp $09
                 jr nz, jr_000_07eb
-                    ldh a, [$97]
+                    ldh a, [hCamera_xPixel]
                     cp $60
                     jr nz, jr_000_07eb
                         ld a, $10
@@ -1587,19 +1567,9 @@ Jump_000_0b3a:
     ld [$c0b1], a
     xor a
     ld [$c0b2], a
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneLoad_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call cutsceneLoad_farCall
+    popBank
 
 jr_000_0b76: ;{ Ending cutscene loop
     ld hl, $cb00
@@ -1608,19 +1578,10 @@ jr_000_0b76: ;{ Ending cutscene loop
     and a
         jr nz, jr_000_0bab
 
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneHandle_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call cutsceneHandle_farCall
+    popBank
+
     call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
@@ -1653,19 +1614,10 @@ jr_000_0bab:
     ld [$c0b1], a
     xor a
     ld [$c0b2], a
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneLoad_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+
+    pushBank $06
+        call cutsceneLoad_farCall
+    popBank
 
 jr_000_0bdc: ;{ End credits loop
     ld hl, $cb00
@@ -1674,19 +1626,10 @@ jr_000_0bdc: ;{ End credits loop
     and a
         jr nz, jr_000_0c11
 
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneHandle_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call cutsceneHandle_farCall
+    popBank
+
     call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
@@ -1732,19 +1675,10 @@ jr_000_0c2c: ;{ Another ending loop?
     or b
     jr z, jr_000_0c6f
 
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call cutsceneHandle_farCall
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call cutsceneHandle_farCall
+    popBank
+    
     call oam_clearUnused
     ld hl, $cb00
     set 7, [hl]
@@ -1780,7 +1714,7 @@ jr_000_0c6f:
     ld a, $77
     ld [$c0b5], a
     ldh a, [hInputPressed]
-    bit 2, a
+    bit PADB_SELECT, a
         jp z, Jump_000_0175
 
     ld a, $ff
@@ -2024,28 +1958,28 @@ LCDCInterruptHandler: ;{ 00:0E0D
     push af
     ldh a, [$9a]
     bit 3, a
-        jr nz, jr_000_0e1e
-    bit 7, a
-        jr z, jr_000_0e26
-    ldh a, [$97]
+        jr nz, .case_disableSprites
+    bit 7, a ; Fancy effect
+        jr z, .case_spinEffect
+
+; Normal status bar case
+    ldh a, [hCamera_xPixel]
     ldh [rSCX], a
     pop af
     
-    jr_000_0e1d:
+    .exit:
 reti
 
-
-jr_000_0e1e:
+.case_disableSprites:
     ldh a, [rLCDC]
-    and $fd
+    and ~STATF_OAM ; %11111101 ; $FD
     ldh [rLCDC], a
     pop af
 reti
 
-
-jr_000_0e26:
+.case_spinEffect:
     bit 6, a
-        jr z, jr_000_0e1d
+        jr z, .exit ; Wait, wouldn't this jump break the stack?
 
     push hl
     ld a, [$c0b8]
@@ -2360,13 +2294,7 @@ loadProc_A: ;{ 00:0F74
     ld hl, $4000
     add hl, de
     
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, b
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank b
     ; Load destination addr to BC
     ld a, [hl+]
     ld c, a
@@ -2406,11 +2334,7 @@ loadProc_A: ;{ 00:0F74
     jr .loop_A
     .break:
 
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    popBank
 ret ;}
 
 ; Load resource
@@ -2433,13 +2357,9 @@ loadProc_B: ;{ 00:0FC1
     ld d, $00
     ld hl, $4000
     add hl, de
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, b
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+
+    pushBank b
+    
     ld a, [hl+]
     ld c, a
     ld a, [hl+]
@@ -2472,11 +2392,7 @@ loadProc_B: ;{ 00:0FC1
     jr .loop_A
     .break:
     
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    popBank
 ret ;}
 
 
@@ -2667,13 +2583,9 @@ loadLevel: ;{ 00:10D5
     add a
     ld e, a
     ld d, $00
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $07
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+
+    pushBank $07
+    
     ld hl, $4000
     add hl, de
     ; Get pointer to metatile dictionary
@@ -2755,11 +2667,8 @@ loadLevel: ;{ 00:10D5
         dec b
     jr nz, .loop_loadScreen
 
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    popBank
+
     ld a, [currentLevel]
     or $80
     ld [$c0c6], a
@@ -2936,14 +2845,14 @@ devMessage_A:; 00:1260 - Developer Message
 Call_000_1277:
     call Call_000_18ef
     call Call_000_3b3b
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld [$c0ef], a
     call $5b96
     ld a, [$c0c5]
     bit 6, a
     jr z, jr_000_12b8
 
-    ldh a, [$98]
+    ldh a, [hCamera_xScreen]
     cp $09
     jr z, jr_000_1296
 
@@ -2952,7 +2861,7 @@ Call_000_1277:
     jr jr_000_12b8
 
 jr_000_1296:
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     cp $60
     jr nc, jr_000_12b8
 
@@ -2964,13 +2873,13 @@ jr_000_129c:
     ldh a, [$96]
     add $78
     ldh [$96], a
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld [$c0ef], a
     adc $00
-    ldh [$97], a
-    ldh a, [$98]
+    ldh [hCamera_xPixel], a
+    ldh a, [hCamera_xScreen]
     adc $00
-    ldh [$98], a
+    ldh [hCamera_xScreen], a
 
 jr_000_12b8:
     ld a, [$c0c5]
@@ -3117,7 +3026,7 @@ ret
 Call_000_13c3:
     call Call_000_18ef
     call Call_000_3b3b
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld [$c0ef], a
     call Call_000_3848
     call Call_000_3750
@@ -3242,9 +3151,9 @@ Call_000_149f: ;{
     add b
     ld [$c0ee], a
     xor a
-    ldh [$97], a
+    ldh [hCamera_xPixel], a
     ld a, [$c0ea]
-    ldh [$98], a
+    ldh [hCamera_xScreen], a
 ret ;}
 
 ; Draw level starting at screen A
@@ -3282,102 +3191,100 @@ Call_000_14c4: ;{ 00:14C4
     jr nz, jr_000_14d4
 ret ;}
 
+; Pause related functions {
 
-Call_000_14eb:
+mainGame_pauseHandler: ;{ 00:14EB
+    ; Check if paused
     ld a, [$c0be]
     and a
-    jr nz, jr_000_150d
+    jr nz, .else_A
+        ; Not paused. Exit if start is not pressed
+        ldh a, [hInputRisingEdge]
+        bit PADB_START, a
+            ret z
+        call pause_drawPauseText
+        ; Init pause text timer
+        xor a
+        ld [$c0bf], a
+        dec a
+        ld [$c0be], a
+        call pause_initBatwingCheatCounter
+        call Call_000_306e ; Sound thing
+        ld a, $1e
+        call playSound
+        ret
+    .else_A:
+        ; Paused case. Check if start is pressed
+        ldh a, [hInputRisingEdge]
+        bit PADB_START, a
+        jr nz, .else_B
+            call pause_batwingCheatProc
+            ; Increment timer
+            ld a, [$c0bf]
+            inc a
+            ld [$c0bf], a
+            ; Oscillate every 16 frames between drawing/undrawing the pause text
+            and $0f
+                ret nz
+            ld a, [$c0bf]
+            and $10
+                call z, pause_drawPauseText
+            ld a, [$c0bf]
+            and $10
+                call nz, pause_drawBlankText
+            ret
+        .else_B:
+            ; Unpause
+            call pause_drawStageText
+            ; Clear pause flag
+            xor a
+            ld [$c0be], a
+            call Call_000_306e ; Sound thing
+            ret
+;}
 
-    ldh a, [hInputRisingEdge]
-    bit 3, a
-    ret z
-
-    call Call_000_153c
-    xor a
-    ld [$c0bf], a
-    dec a
-    ld [$c0be], a
-    call Call_000_1595
-    call Call_000_306e
-    ld a, $1e
-    call playSound
-    ret
-
-
-jr_000_150d:
-    ldh a, [hInputRisingEdge]
-    bit 3, a
-    jr nz, jr_000_1531
-
-    call Call_000_159a
-    ld a, [$c0bf]
-    inc a
-    ld [$c0bf], a
-    and $0f
-    ret nz
-
-    ld a, [$c0bf]
-    and $10
-    call z, Call_000_153c
-    ld a, [$c0bf]
-    and $10
-    call nz, Call_000_1552
-    ret
-
-
-jr_000_1531:
-    call Call_000_1560
-    xor a
-    ld [$c0be], a
-    call Call_000_306e
-    ret
-
-
-Call_000_153c:
-    call Call_000_1576
-    ld a, $19
+pause_drawPauseText: ;{ 00:153C
+    call pause_prepVBlankPacket
+    ld a, $19 ; P
     ld [hl+], a
-    ld a, $0a
+    ld a, $0a ; A
     ld [hl+], a
-    ld a, $1e
+    ld a, $1e ; U
     ld [hl+], a
-    ld a, $1c
+    ld a, $1c ; S
     ld [hl+], a
-    ld a, $0e
+    ld a, $0e ; E
     ld [hl+], a
-    call Call_000_158a
-    ret
+    call pause_closeVBlankPacket
+ret ;}
 
-
-Call_000_1552:
-    call Call_000_1576
-    ld a, $25
+pause_drawBlankText: ;{ 00:1552
+    call pause_prepVBlankPacket
+    ld a, $25 ; Space
     ld [hl+], a
     ld [hl+], a
     ld [hl+], a
     ld [hl+], a
     ld [hl+], a
-    call Call_000_158a
-    ret
+    call pause_closeVBlankPacket
+ret ;}
 
+pause_drawStageText: ;{ 00:1560
+    call pause_prepVBlankPacket
+    ld a, $1c ; S
+    ld [hl+], a
+    ld a, $1d ; T
+    ld [hl+], a
+    ld a, $0a ; A
+    ld [hl+], a
+    ld a, $10 ; G
+    ld [hl+], a
+    ld a, $0e ; E
+    ld [hl+], a
+    call pause_closeVBlankPacket
+ret ;}
 
-Call_000_1560:
-    call Call_000_1576
-    ld a, $1c
-    ld [hl+], a
-    ld a, $1d
-    ld [hl+], a
-    ld a, $0a
-    ld [hl+], a
-    ld a, $10
-    ld [hl+], a
-    ld a, $0e
-    ld [hl+], a
-    call Call_000_158a
-    ret
-
-
-Call_000_1576:
+pause_prepVBlankPacket: ;{ 00:1576
     ld d, $00
     ld a, [vBlank_updateBufferIndex]
     ld e, a
@@ -3389,35 +3296,33 @@ Call_000_1576:
     ld [hl+], a
     ld a, $05
     ld [hl+], a
-    ret
+ret ;}
 
-
-Call_000_158a:
+pause_closeVBlankPacket: ;{ 00:158A
     xor a
     ld [hl+], a
     ld a, [vBlank_updateBufferIndex]
     add $08
     ld [vBlank_updateBufferIndex], a
-    ret
+ret ;}
 
-
-Call_000_1595:
+pause_initBatwingCheatCounter: ;{ 00:1595
     xor a
-    ld [$c116], a
-    ret
+    ld [batwingCheatCounter], a
+ret ;}
 
-
-Call_000_159a:
+pause_batwingCheatProc: ;{ 00:159A
+    ; Check if on stages 8 or 9 (Batwing stages)
     ld a, [currentLevel]
-    and $fe
+    and %11111110 ; $FE
     cp $08
-    ret nz
+        ret nz
 
     ldh a, [hInputRisingEdge]
     and $f7
-    ret z
+        ret z
 
-    ld a, [$c116]
+    ld a, [batwingCheatCounter]
     cp $07
     jr z, jr_000_15c3
 
@@ -3430,14 +3335,13 @@ Call_000_159a:
     add hl, de
     ldh a, [hInputRisingEdge]
     ld [hl], a
-    ld a, [$c116]
+    ld a, [batwingCheatCounter]
     inc a
-    ld [$c116], a
+    ld [batwingCheatCounter], a
     ret
 
-
 jr_000_15c3:
-    ld a, [$c116]
+    ld a, [batwingCheatCounter]
     and $0f
     ld e, a
     ld d, $00
@@ -3449,14 +3353,13 @@ jr_000_15c3:
     ld hl, $c106
     ld b, $04
 
-jr_000_15da:
-    ld a, [de]
-    cp [hl]
-    inc de
-    inc hl
-    jr nz, jr_000_1608
-
-    dec b
+    jr_000_15da:
+        ld a, [de]
+        cp [hl]
+        inc de
+        inc hl
+            jr nz, jr_000_1608
+        dec b
     jr nz, jr_000_15da
 
     ld c, $00
@@ -3475,21 +3378,20 @@ jr_000_15da:
     ld a, c
     and $0f
     jr nz, jr_000_15fc
-
-    ld a, $0f
-
-jr_000_15fc:
+        ld a, $0f
+    jr_000_15fc:
     ld [$c0dc], a
     cp $03
     jr nc, jr_000_1608
+        ld a, $0a
+        ld [$c0dc], a
+    jr_000_1608:
 
-    ld a, $0a
-    ld [$c0dc], a
-
-jr_000_1608:
     ld a, $0f
-    ld [$c116], a
-    ret
+    ld [batwingCheatCounter], a
+ret ;}
+
+;}
 
 devMessage_C: ; 00:160E - Developer Message
 ; Shift-JIS Encoded
@@ -3620,7 +3522,6 @@ gameOver_drawScreen: ;{ 00:162B
                             ld [hl+], a
     
 ret ;}
-
 
 gameOver_handleInputAndSprite: ;{ 00:16F6
 ; Handle input
@@ -3996,11 +3897,10 @@ Call_000_18c9:
 Call_000_18ef:
     ld a, [$c0b5]
     bit 7, a
-    ret z
-
+        ret z
     ldh a, [$8d]
     bit 2, a
-    ret z
+        ret z
 
     ld a, [$c117]
 
@@ -5919,13 +5819,8 @@ soundTestText: ; 00:27D1 - String list format
 ; Get enemy data pointer for stage
 ;  (sometime after the tile data has been loaded to WRAM)
 Call_000_281a: ;{ 00:281A
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+
     ; Clear some stuff
     ld b, $05
     ld de, $0020
@@ -5947,29 +5842,16 @@ Call_000_281a: ;{ 00:281A
     ld [$c2f3], a
     ld a, [hl]
     ld [$c2f4], a
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+
+    popBank
 ret ;}
 
 
 Call_000_2850:
 jr_000_2850:
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $06
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call Call_000_2868
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $06
+        call Call_000_2868
+    popBank
 ret
 
 
@@ -5986,7 +5868,7 @@ Call_000_2868: ; Try loading enemy
         jp nz, Jump_000_2893
 ; Read enemy scroll data {
     ; Compare screen in data to current screen
-    ldh a, [$98]
+    ldh a, [hCamera_xScreen]
     cp [hl]
         jr z, jr_000_2887
     ret c ; Exit if we're too early
@@ -6008,7 +5890,7 @@ jr_000_287d:
 jr_000_2887:
     ; Compare pixel in data to current pixel
     inc hl
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     cp [hl]
     ret c
 jr jr_000_287c ;}
@@ -7405,22 +7287,12 @@ timerOverflowInterruptHandler: ;{ 00:2FF8
     push bc
     push de
     push hl
-    di
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $02
-        ld [$2000], a
-        ldh [hCurrentBank], a
+    di ; The pushBank/popBank macros already use DI and EI
+    pushBank $02
     ei
-    ei
-    call $40a9
+        call $40a9
     di
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    popBank
     ei
     xor a
     ldh [$a2], a
@@ -7434,19 +7306,9 @@ ret ;}
 
 
 stopSound: ; 00:3028 - Clear music
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $02
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
-    call $4036
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $02
+        call $4036
+    popBank
     ld a, $ff
     ldh [rNR50], a
     ldh [rNR51], a
@@ -7457,19 +7319,9 @@ ret
 
 
 Call_000_304b: ; 00:304B - Init Sound?
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $02
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $02
     call $4000
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    popBank 
     ld a, $ff
     ldh [rNR50], a
     ldh [rNR51], a
@@ -7480,22 +7332,12 @@ ret
 
 
 Call_000_306e:
-    di
-    ldh a, [hCurrentBank]
-    push af
-    ld a, $02
-    ld [$2000], a
-    ldh [hCurrentBank], a
-    ei
-    call $4066
-    di
-    pop af
-    ld [$2000], a
-    ldh [hCurrentBank], a
-    ei
+    pushBank $02
+        call $4066
+    popBank
     xor a
     ldh [$a2], a
-    ret
+ret
 
 
 Call_000_3089:
@@ -7506,20 +7348,10 @@ Call_000_3089:
 playSound: ; 00:308D - Load song [A]
     push bc
     ld b, a
-    di
-        ldh a, [hCurrentBank]
-        push af
-        ld a, $02
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    pushBank $02
     ld a, b
     call Call_000_30ea
-    di
-        pop af
-        ld [$2000], a
-        ldh [hCurrentBank], a
-    ei
+    popBank
     pop bc
 ret
 
@@ -8309,7 +8141,7 @@ Call_000_353d:
     ldh [$93], a
     inc a
     ldh [$9c], a
-    ldh a, [$98]
+    ldh a, [hCamera_xScreen]
     ld [$c0ef], a
     ret
 
@@ -8629,7 +8461,7 @@ jr_000_3706:
     cp $50
     jr c, jr_000_372f
 
-    ldh a, [$98]
+    ldh a, [hCamera_xScreen]
     cp $09
     jr z, jr_000_3715
 
@@ -8638,7 +8470,7 @@ jr_000_3706:
     jr jr_000_371b
 
 jr_000_3715:
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     cp $60
     jr nc, jr_000_372f
 
@@ -8647,12 +8479,12 @@ jr_000_371b:
     sub $50
     ld d, a
     ld h, $50
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     add d
-    ldh [$97], a
-    ldh a, [$98]
+    ldh [hCamera_xPixel], a
+    ldh a, [hCamera_xScreen]
     adc $00
-    ldh [$98], a
+    ldh [hCamera_xScreen], a
     ld [$c0ea], a
 
 Jump_000_372f:
@@ -8674,7 +8506,7 @@ jr_000_373c:
     ld e, a
     and $f8
     ld c, a
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld d, a
     sub e
     ldh [$99], a
@@ -8860,7 +8692,7 @@ Call_000_3848:
     ld e, a
     and $f8
     ld c, a
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld d, a
     sub e
     ldh [$99], a
@@ -9190,11 +9022,11 @@ jr_000_3a07:
     jr c, jr_000_3a43
 
 jr_000_3a2b:
-    ldh a, [$98]
+    ldh a, [hCamera_xScreen]
     cp $09
     jr nz, jr_000_3a38
 
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     cp $60
     jr z, jr_000_3a3c
 

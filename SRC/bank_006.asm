@@ -161,7 +161,7 @@ cutsceneLoad: ;{ 06:6806
     ldh [rSCX], a
     ldh [$bb], a
     ldh [$bc], a
-    ldh [$97], a
+    ldh [hCamera_xPixel], a
     ld a, [$c0b1]
     cp $04
     jr nz, .endIf_A

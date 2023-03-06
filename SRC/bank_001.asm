@@ -1376,7 +1376,7 @@ Jump_001_472b:
     ret
 
 
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld [$c0ef], a
     ld a, [$c0d8]
     ld c, a
@@ -1419,18 +1419,18 @@ jr_001_479d:
     ldh a, [$96]
     add c
     ldh [$96], a
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld [$c0ef], a
     adc b
-    ldh [$97], a
-    ldh a, [$98]
+    ldh [hCamera_xPixel], a
+    ldh a, [hCamera_xScreen]
     adc $00
-    ldh [$98], a
+    ldh [hCamera_xScreen], a
     ld a, [$c0ef]
     ld e, a
     and $f8
     ld c, a
-    ldh a, [$97]
+    ldh a, [hCamera_xPixel]
     ld d, a
     sub e
     ldh [$99], a

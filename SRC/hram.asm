@@ -3,8 +3,8 @@ section "HRAM", HRAM[$ff80]
 ; HRAM
 
 
-; $97 - Camera pixel
-; $98 - Camera screen
+hCamera_xPixel  = $FF97 ; $97 - Camera pixel
+hCamera_xScreen = $FF98 ; $98 - Camera screen
 
 ; $9A - LCD Interrupt Related
 

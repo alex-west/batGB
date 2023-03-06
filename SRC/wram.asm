@@ -43,6 +43,8 @@ playerScoreLo  = $C0DE ; Score (ones, tens)
 playerScoreMid = $C0DF ; Score (hundreds, thousands)
 playerScoreHi  = $C0E0 ; Score (ten housands)
 
+batwingCheatCounter = $C116 ; Used for keeping track of button presses
+
 ; $C117 - Batman weapon type
 
 ; $C122 - Batman projectile slots (8 slots, $10 bytes each)
