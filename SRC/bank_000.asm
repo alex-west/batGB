@@ -10,7 +10,7 @@ SECTION "ROM Bank $000", ROM0[$0000]
     db $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 
 VBlankInterrupt::
-    jp vBlankHandler
+    jp VBlankHandler
     db $FF, $FF, $FF, $FF, $FF
 
 LCDCInterrupt::
@@ -78,7 +78,7 @@ coldBoot: ; 00:0150
     ld [topScoreHi], a
     ld [$c0b5], a
 
-Jump_000_0175: ; 00:0175
+softReset: ; 00:0175
     di
         call disableLCD
         xor a
@@ -97,7 +97,8 @@ Jump_000_0175: ; 00:0175
 
     call Call_000_304b
 
-Jump_000_0194:
+mode_titleSpin: ; 00:0194
+.prep: ;{
     xor a
     ldh [hInputRisingEdge], a
     dec a
@@ -117,7 +118,7 @@ Jump_000_0194:
     ld a, $40
     ldh [$9a], a
     ld a, $00
-    ld [$c0b6], a
+    ld [spinEffect_index], a
     xor a
     ld [$c1a5], a
     ld a, $02
@@ -158,18 +159,19 @@ Jump_000_0194:
     ldh [rSTAT], a
     ld a, $f7
     ldh [rLCDC], a
+;}
 
-jr_000_0214: ;{ Some loop
+.loop: ;{ Title spin loop
     ld hl, $cb00
     res 7, [hl]
-    ld hl, $ffb5
-    bit 3, [hl]
+    ld hl, hInputRisingEdge ; $ffb5
+    bit PADB_START, [hl]
         jp nz, Jump_000_03bd
 
     ld a, [$c1a6]
     dec a
     ld [$c1a6], a
-    jr nz, jr_000_025e
+    jr nz, .endIf
         ld a, $02
         ld [$c1a6], a
         ld hl, $c1a3
@@ -177,9 +179,9 @@ jr_000_0214: ;{ Some loop
         add [hl]
         ld [$c1a5], a
         inc hl
-        ld a, [$c0b6]
+        ld a, [spinEffect_index]
         adc [hl]
-        ld [$c0b6], a
+        ld [spinEffect_index], a
         ld a, [hl]
         inc a
         ld b, a
@@ -190,11 +192,11 @@ jr_000_0214: ;{ Some loop
         sbc $00
         ld [$c1a4], a
         cp $02
-        jr nc, jr_000_025e
-            ld a, [$c0b6]
+        jr nc, .endIf
+            ld a, [spinEffect_index]
             cp $40
             jr z, jr_000_027e
-    jr_000_025e:
+    .endIf:
 
     ld a, [$c0bd]
     sub $01
@@ -205,15 +207,15 @@ jr_000_0214: ;{ Some loop
     ld hl, $cb00
     set 7, [hl]
 
-    jr_000_0273:
+    .waitLoop:
         db $76 ; HALT
         ldh a, [hVBlankDoneFlag]
         and a
-    jr z, jr_000_0273
+    jr z, .waitLoop
 
     xor a
     ldh [hVBlankDoneFlag], a
-jr jr_000_0214 ;}
+jr .loop ;}
 
 jr_000_027e:
     ld a, $0f
@@ -281,7 +283,7 @@ Jump_000_02c6:
     ld [$c0be], a
     jr nc, jr_000_02fc
         call disableLCD
-        jp Jump_000_0194
+        jp mode_titleSpin
     jr_000_02fc:
         ld a, [$c1a5]
         cp $ff
@@ -653,7 +655,7 @@ mode_soundTest: ;{ 00:04F5
     
     ldh a, [hInputRisingEdge]
     bit PADB_SELECT, a
-        jp nz, Jump_000_0175
+        jp nz, softReset
 
     ; Let the player select the song (and update the number accordingly)
     call soundTest_handleInput
@@ -865,7 +867,7 @@ jr_000_06c4:
     ld a, $40
     ldh [$9a], a
     ld a, $80
-    ld [$c0b6], a
+    ld [spinEffect_index], a
     ld a, $80
     ld [$c1a3], a
     call stopSound ; Clear music?
@@ -893,7 +895,7 @@ jr_000_0708: ;{ Some game loop
     and $0b
         jp nz, Jump_000_0781
 
-    ld hl, $c0b6
+    ld hl, spinEffect_index
     ld a, [hl]
     inc a
     ld [hl], a
@@ -998,7 +1000,7 @@ jr_000_0781:
     xor a
     ldh [hVBlankDoneFlag], a
 
-Jump_000_07b2: ;{ Main game loop ?
+mode_mainGame_loop: ;{ 00:07B2 Main game loop ?
     
     ld hl, $cb00
     res 7, [hl]
@@ -1084,7 +1086,7 @@ Jump_000_07b2: ;{ Main game loop ?
 
     xor a
     ldh [hVBlankDoneFlag], a
-jp Jump_000_07b2 ;}
+jp mode_mainGame_loop ;}
 
 
 Jump_000_0845:
@@ -1532,7 +1534,7 @@ jr .loop ;}
         jp Jump_000_065c
     .else:
         call disableLCD
-        jp Jump_000_0194
+        jp mode_titleSpin
 ;}
 
 ; Continue weapon levels
@@ -1708,77 +1710,82 @@ jr_000_0c6f:
     call oam_clearUnused
     ld a, [$c0b5]
     cp $ff
-        jp z, Jump_000_0175
+        jp z, softReset
 
     ; Do something if select if held?
     ld a, $77
     ld [$c0b5], a
     ldh a, [hInputPressed]
     bit PADB_SELECT, a
-        jp z, Jump_000_0175
+        jp z, softReset
 
     ld a, $ff
     ld [$c0b5], a
-jp Jump_000_0175
+jp softReset
 
 
-vBlankHandler: ;{ 00:0C9C
+VBlankHandler: ;{ 00:0C9C
     push af
     push bc
     push de
     push hl
     ld a, [$cb00]
     bit 7, a
-    jp z, Jump_000_0de6
+        jp z, Jump_000_0de6
 
     call $fff0 ; OAM DMA routine
+    
+    ; Check if sprites were disabled by interrupt
     ldh a, [$9a]
     bit 3, a
-    jp z, Jump_000_0cb8
+    jp z, .endIf_A
         ldh a, [rLCDC]
-        or $02
+        or LCDCF_OBJON ;$02
         ldh [rLCDC], a
-    Jump_000_0cb8:
+    .endIf_A:
 
+    ; Check if spin effect is active
     ldh a, [$9a]
     bit 6, a
-        jp nz, Jump_000_0d44
+        jp nz, VBlank_spinCase
 
     ldh a, [$9a]
     cp $03
         call z, Call_000_0f34
+        
+        
     ld hl, $cb00
     bit 7, [hl]
-    jr z, jr_000_0cda
+    jr z, .endIf_B
         ld de, vBlank_updateBuffer
         call loadStringList.call
         xor a
         ld [vBlank_updateBufferIndex], a
         ld [vBlank_updateBuffer], a
-    jr_000_0cda:
+    .endIf_B:
 
     ldh a, [$fa]
     xor $80
     ldh [$fa], a
-    jr nz, jr_000_0ce5
+    jr nz, .else_C
         xor a
-        jr jr_000_0ce7
-    jr_000_0ce5:
+        jr .endIf_C
+    .else_C:
         ld a, $a0
-    jr_000_0ce7:
-
+    .endIf_C:
     ld [$c0a0], a
+    
     ldh a, [$9a]
     and a
-    jr z, jr_000_0cf6
+    jr z, .else_D
         xor a
         ldh [rSCX], a
         ldh [rSCY], a
-        jr jr_000_0cfc
-    jr_000_0cf6:
+        jr .endIf_D
+    .else_D:
         call Call_000_1818
         call Call_000_0f55
-    jr_000_0cfc:
+    .endIf_D:
 
     ld a, $20
     ldh [rP1], a
@@ -1808,14 +1815,16 @@ vBlankHandler: ;{ 00:0C9C
     ldh [hInputPressed], a
     ld a, $30
     ldh [rP1], a
+    
+    ; Soft reset
     ldh a, [hInputPressed]
-    and $07
-    xor $07
-    jr nz, jr_000_0d3b
+    and PADF_A | PADF_B | PADF_SELECT ; $07
+    xor PADF_A | PADF_B | PADF_SELECT ; $07
+    jr nz, .endIf_E
         ldh a, [hInputRisingEdge]
-        bit 3, a
-        jp nz, Jump_000_0175
-    jr_000_0d3b:
+        bit PADB_START, a
+        jp nz, softReset
+    .endIf_E:
 
     ld a, $01
     ldh [hVBlankDoneFlag], a
@@ -1825,53 +1834,56 @@ vBlankHandler: ;{ 00:0C9C
     pop af
 reti
 
-
-Jump_000_0d44:
-    ld a, [$c0b6]
+VBlank_spinCase: ; 00:0D44
+    ld a, [spinEffect_index]
     and $7f
     cp $40
-    jr c, jr_000_0d51
+    jr c, .endIf_A
         cpl
         inc a
         add $80
-    jr_000_0d51:
+    .endIf_A:
 
     ld e, a
     sla e
     add e
     ld d, $00
     ld e, a
-    ld hl, $1ac3
+    ld hl, table_000_1AC3 ; $1AC3
     add hl, de
-    ld a, [$c0b6]
+    ld a, [spinEffect_index]
     bit 7, a
-    jr nz, jr_000_0d78
+    jr nz, .else_B
         ld a, [hl+]
-        ld [$c0b8], a
+        ld [spinEffect_startLine], a
+        ; Increment value is positive
         ld a, [hl+]
-        ld [$c0bb], a
+        ld [spinEffect_incrementSubpixel], a
         ld a, [hl+]
-        ld [$c0bc], a
+        ld [spinEffect_incrementPixel], a
+        ; Start the counter at the top
         xor a
-        ld [$c0b9], a
-        ld [$c0ba], a
-        jr jr_000_0d93
-    jr_000_0d78:
+        ld [spinEffect_counterSubpixel], a
+        ld [spinEffect_counterPixel], a
+        jr .endIf_B
+    .else_B:
         ld a, [hl+]
-        ld [$c0b8], a
+        ld [spinEffect_startLine], a
+        ; Negate the increment value
         ld a, [hl+]
         cpl
         add $01
-        ld [$c0bb], a
+        ld [spinEffect_incrementSubpixel], a
         ld a, [hl+]
         cpl
         adc $00
-        ld [$c0bc], a
+        ld [spinEffect_incrementPixel], a
+        ; Start the counter at the bottom
         xor a
-        ld [$c0b9], a
+        ld [spinEffect_counterSubpixel], a
         ld a, $8f
-        ld [$c0ba], a
-    jr_000_0d93:
+        ld [spinEffect_counterPixel], a
+    .endIf_B:
 
     xor a
     ldh [rLYC], a
@@ -1879,6 +1891,8 @@ Jump_000_0d44:
     xor a
     ld [vBlank_updateBufferIndex], a
     ld [vBlank_updateBuffer], a
+    
+    ; Read input
     ld a, $20
     ldh [rP1], a
     ldh a, [rP1]
@@ -1907,14 +1921,16 @@ Jump_000_0d44:
     ldh [hInputPressed], a
     ld a, $30
     ldh [rP1], a
+    
+    ; Soft reset
     ldh a, [hInputPressed]
-    and $07
-    xor $07
-    jr nz, jr_000_0ddd
+    and PADF_A | PADF_B | PADF_SELECT ; $07
+    xor PADF_A | PADF_B | PADF_SELECT ; $07
+    jr nz, .endIf_C
         ldh a, [hInputRisingEdge]
-        bit 3, a
-        jp nz, Jump_000_0175
-    jr_000_0ddd:
+        bit PADB_START, a
+        jp nz, softReset
+    .endIf_C:
 
     ld a, $01
     ldh [hVBlankDoneFlag], a
@@ -1928,25 +1944,27 @@ reti
 Jump_000_0de6:
     ldh a, [$9a]
     and a
-    jr z, jr_000_0df2
+    jr z, .else_A
         xor a
         ldh [rSCX], a
         ldh [rSCY], a
-        jr jr_000_0df9
-    jr_000_0df2:
+        jr .endIf_A
+    .else_A:
         ldh a, [$9a]
         cp $03
         call z, Call_000_0f34
-    jr_000_0df9:
+    .endIf_A:
 
+    ; Soft reset
     ldh a, [hInputPressed]
-    and $07
-    xor $07
-    jr nz, jr_000_0e08
+    and PADF_A | PADF_B | PADF_SELECT ; $07
+    xor PADF_A | PADF_B | PADF_SELECT ; $07
+    jr nz, .endIf_B
         ldh a, [hInputRisingEdge]
-        bit 3, a
-        jp nz, Jump_000_0175
-    jr_000_0e08:
+        bit PADB_START, a
+        jp nz, softReset
+    .endIf_B:
+    
     pop hl
     pop de
     pop bc
@@ -1979,39 +1997,45 @@ reti
 
 .case_spinEffect:
     bit 6, a
-        jr z, .exit ; Wait, wouldn't this jump break the stack?
+        jr z, .exit ; Wait, wouldn't this jump break the stack with the unbalanced push/pop?
 
+    ; Check if we've hit the starting scanline
     push hl
-    ld a, [$c0b8]
+    ld a, [spinEffect_startLine]
     and a
-    jr nz, jr_000_0e4f
-
-    ld a, [$c0ba]
+        jr nz, .aboveTop
+    ; Check if the counter is below the bottom of the screen
+    ld a, [spinEffect_counterPixel]
     cp $90
-    jr nc, jr_000_0e53
+        jr nc, .belowBottom
 
-    ld hl, $c0bb
-    ld a, [$c0b9]
+    ; counter -= increment
+    ld hl, spinEffect_incrementSubpixel
+    ld a, [spinEffect_counterSubpixel]
     add [hl]
-    ld [$c0b9], a
+    ld [spinEffect_counterSubpixel], a
     inc hl
-    ld a, [$c0ba]
+    ld a, [spinEffect_counterPixel]
     adc [hl]
-    ld [$c0ba], a
+    ld [spinEffect_counterPixel], a
+    ; use the counterPixel to get the scroll value down below
     ld hl, rLYC ; $FF45
-    jr jr_000_0e58
+jr .defaultCase
 
-jr_000_0e4f:
+.aboveTop:
+    ; Decrement the start line
     dec a
-    ld [$c0b8], a
-
-jr_000_0e53:
+    ld [spinEffect_startLine], a
+.belowBottom:
+    ; Set scroll value to 
     ld hl, rLYC ; $FF45
     ld a, $90
-
-jr_000_0e58:
+.defaultCase:
+    ; Take the difference between the counter value and scanline to get the scroll value
+    ; SCY = A - LYC
     sub [hl]
     ldh [rSCY], a
+    ; Set raster interrupt to next scanline
     ld hl, rLYC ; $FF45
     inc [hl]
     pop hl
@@ -2248,10 +2272,10 @@ Call_000_0f55: ;{ 00:0F55
     ld hl, $ffbd
     ldh a, [rWY]
     cp [hl]
-    jr z, jr_000_0f60
+    jr z, .endIf
         ld a, [hl]
         ldh [rWY], a
-    jr_000_0f60:
+    .endIf:
     inc hl
     ldh a, [rWX]
     cp [hl]
@@ -4256,20 +4280,139 @@ soundTest_drawNumber: ;{ 00:1A9F
     ld [vBlank_updateBufferIndex], a
 ret ;}
 
-; 00:1AC3
-    db $48, $00, $48, $46, $bf, $28, $44, $61, $14, $43, $98, $0d, $41, $34, $0a, $3f
-    db $2b, $08, $3d, $d1, $06, $3c, $d9, $05, $3a, $20, $05, $38, $90, $04, $37, $1e
-    db $04, $35, $c0, $03, $33, $72, $03, $31, $30, $03, $30, $f8, $02, $2e, $c7, $02
-    db $2c, $9d, $02, $2b, $78, $02, $29, $57, $02, $28, $39, $02, $26, $1f, $02, $25
-    db $07, $02, $23, $f2, $01, $21, $df, $01, $20, $cd, $01, $1f, $bd, $01, $1d, $ae
-    db $01, $1c, $a0, $01, $1a, $94, $01, $19, $88, $01, $18, $7d, $01, $16, $73, $01
-    db $15, $6a, $01, $14, $61, $01, $13, $5a, $01, $11, $52, $01, $10, $4b, $01, $0f
-    db $45, $01, $0e, $3f, $01, $0d, $39, $01, $0c, $34, $01, $0b, $2f, $01, $0a, $2a
-    db $01, $09, $26, $01, $09, $22, $01, $08, $1f, $01, $07, $1b, $01, $06, $18, $01
-    db $05, $15, $01, $05, $12, $01, $04, $10, $01, $04, $0e, $01, $03, $0c, $01, $03
-    db $0a, $01, $02, $08, $01, $02, $06, $01, $01, $05, $01, $01, $04, $01, $01, $03
-    db $01, $01, $02, $01, $00, $01, $01, $00, $01, $01, $00, $00, $01, $00, $00, $01
-    db $00, $00, $01
+; 1 byte - Starting scanline
+; 1 word - 8.8 precision incrementing value
+table_000_1AC3: ; 00:1AC3 - Spin effect related (65 (0x41) rows)
+    db $48
+        dw $4800
+    db $46 
+        dw $28BF
+    db $44 
+        dw $1461
+    db $43
+        dw $0D98
+    db $41 
+        dw $0A34
+    db $3F 
+        dw $082B
+    db $3D 
+        dw $06D1
+    db $3C 
+        dw $05D9
+    db $3A 
+        dw $0520
+    db $38 
+        dw $0490
+    db $37 
+        dw $041E
+    db $35 
+        dw $03C0
+    db $33 
+        dw $0372
+    db $31 
+        dw $0330
+    db $30 
+        dw $02F8
+    db $2E 
+        dw $02C7
+    db $2C 
+        dw $029D
+    db $2B 
+        dw $0278
+    db $29 
+        dw $0257
+    db $28 
+        dw $0239
+    db $26 
+        dw $021F
+    db $25 
+        dw $0207
+    db $23 
+        dw $01F2
+    db $21 
+        dw $01DF
+    db $20 
+        dw $01CD
+    db $1F 
+        dw $01BD
+    db $1D 
+        dw $01AE
+    db $1C 
+        dw $01A0
+    db $1A 
+        dw $0194
+    db $19 
+        dw $0188
+    db $18 
+        dw $017D
+    db $16 
+        dw $0173
+    db $15 
+        dw $016A
+    db $14 
+        dw $0161
+    db $13 
+        dw $015A
+    db $11 
+        dw $0152
+    db $10 
+        dw $014B
+    db $0F 
+        dw $0145
+    db $0E 
+        dw $013F
+    db $0D 
+        dw $0139
+    db $0C 
+        dw $0134
+    db $0B 
+        dw $012F
+    db $0A 
+        dw $012A
+    db $09 
+        dw $0126
+    db $09 
+        dw $0122
+    db $08 
+        dw $011F
+    db $07 
+        dw $011B
+    db $06 
+        dw $0118
+    db $05 
+        dw $0115
+    db $05 
+        dw $0112
+    db $04 
+        dw $0110
+    db $04 
+        dw $010E
+    db $03 
+        dw $010C
+    db $03 
+        dw $010A
+    db $02 
+        dw $0108
+    db $02 
+        dw $0106
+    db $01 
+        dw $0105
+    db $01 
+        dw $0104
+    db $01 
+        dw $0103
+    db $01 
+        dw $0102
+    db $00 
+        dw $0101
+    db $00 
+        dw $0101
+    db $00 
+        dw $0100
+    db $00 
+        dw $0100
+    db $00 
+        dw $0100
 
 loadBossEnemy: ;{ 00:1B86
     xor a
@@ -7246,33 +7389,30 @@ jr_000_2fc9:
     ret
 
 
-Call_000_2fd4:
+Call_000_2fd4: ;{ 00:2FD4 - Enemy related
     ld a, $05
     ld [$c1a5], a
     ld hl, $c24e
 
-jr_000_2fdc:
-    ld a, [hl]
-    bit 7, a
-    jr z, jr_000_2fea
-
-    push hl
-    set 6, [hl]
-    inc hl
-    inc hl
-    ld a, $10
-    ld [hl-], a
-    pop hl
-
-jr_000_2fea:
-    ld de, $0020
-    add hl, de
-    ld a, [$c1a5]
-    dec a
-    ld [$c1a5], a
-    jr nz, jr_000_2fdc
-
-    ret
+    .loop:
+        ld a, [hl]
+        bit 7, a
+        jr z, .endIf
+            push hl
+            set 6, [hl]
+            inc hl
+            inc hl
+            ld a, $10
+            ld [hl-], a
+            pop hl
+        .endIf:
+        ld de, $0020
+        add hl, de
+        ld a, [$c1a5]
+        dec a
+        ld [$c1a5], a
+    jr nz, .loop
+ret ;}
 
 
 timerOverflowInterruptHandler: ;{ 00:2FF8

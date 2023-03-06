@@ -6,8 +6,16 @@ oamBuffer: ds $A0 ; $C000-C09F
 
 ; $C0B1 ; Current Cutscene
 
-; $C0B6, $C0B8, $C0B9 - LCD Interrupt Related
+; LCD Interrupt Related
+spinEffect_index = $C0B6 ; range is $00-$40, bit 7 makes it upside-down
+; $C0B7 - Unused?
+spinEffect_startLine = $C0B8
 
+spinEffect_counterSubpixel = $C0B9
+spinEffect_counterPixel    = $C0BA
+
+spinEffect_incrementSubpixel = $C0BB
+spinEffect_incrementPixel    = $C0BC
 
 ; $C0BD - Decrementing Timer (hi)
 ; $C0BE - (lo)
@@ -30,10 +38,6 @@ currentLevel = $C0C2 ; Level Number
 ; $0D: Ending cutscene (END)
 ; $0E: invalid
 
-; Displayed value is multiplied by 10
-topScoreLo  = $C0E3 ; Score (ones, tens)
-topScoreMid = $C0E4 ; Score (hundreds, thousands)
-topScoreHi  = $C0E5 ; Score (ten housands)
 
 playerLives = $C0C7 ; Lives
 playerHealth = $C0C8 ; Health
@@ -42,6 +46,11 @@ playerHealth = $C0C8 ; Health
 playerScoreLo  = $C0DE ; Score (ones, tens)
 playerScoreMid = $C0DF ; Score (hundreds, thousands)
 playerScoreHi  = $C0E0 ; Score (ten housands)
+
+; Displayed value is multiplied by 10
+topScoreLo  = $C0E3 ; Score (ones, tens)
+topScoreMid = $C0E4 ; Score (hundreds, thousands)
+topScoreHi  = $C0E5 ; Score (ten housands)
 
 batwingCheatCounter = $C116 ; Used for keeping track of button presses
 

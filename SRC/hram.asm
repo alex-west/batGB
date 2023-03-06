@@ -6,10 +6,17 @@ section "HRAM", HRAM[$ff80]
 hCamera_xPixel  = $FF97 ; $97 - Camera pixel
 hCamera_xScreen = $FF98 ; $98 - Camera screen
 
-; $9A - LCD Interrupt Related
+hLCDInterruptMode = $FF9A ; - LCD Interrupt Related
+; $00 - ??
+; $03 - ??
+; $04 - Disable sprites
+; $40 - Spin effect
+; $80 - Status bar
 
 ; $A3 - Temp pointer (several other uses?)
 ; $A4
+
+; $A3-$B3 - Enemy working copy
 
 hInputPressed = $FFB4 ; Input
 hInputRisingEdge = $FFB5 ; Input (rising edge)
