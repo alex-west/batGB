@@ -114,7 +114,7 @@ mode_titleSpin: ; 00:0194
     xor a
     ld [vBlank_updateBuffer], a
     ld [vBlank_updateBufferIndex], a
-    ld [$cb00], a
+    ld [vBlank_updateFlag], a
     ld a, $40
     ldh [$9a], a
     ld a, $00
@@ -162,7 +162,7 @@ mode_titleSpin: ; 00:0194
 ;}
 
 .loop: ;{ Title spin loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld hl, hInputRisingEdge ; $ffb5
     bit PADB_START, [hl]
@@ -204,7 +204,7 @@ mode_titleSpin: ; 00:0194
     ld a, [$c0be]
     sbc $00
     ld [$c0be], a
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     .waitLoop:
@@ -247,7 +247,7 @@ jr_000_027e:
     ldh [$bc], a
     ld a, $00
     ldh [$9a], a
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_02bd:
@@ -260,7 +260,7 @@ jr_000_027e:
     ldh [hVBlankDoneFlag], a
 
 Jump_000_02c6:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld hl, $ffb5
     bit 3, [hl]
@@ -396,7 +396,7 @@ jr_000_0396:
 
 Jump_000_03ac:
 jr_000_03ac:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_03b1:
@@ -444,7 +444,7 @@ jr_000_03f3:
     ld [$c0be], a
     ld a, $2c
     call playSound
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0413:
@@ -457,7 +457,7 @@ jr_000_03f3:
     ldh [hVBlankDoneFlag], a
 
 jr_000_041c: ;{ Some loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0bd]
     sub $01
@@ -483,7 +483,7 @@ jr_000_041c: ;{ Some loop
     bit 4, a
     call z, Call_000_2795
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_045c:
@@ -497,7 +497,7 @@ jr_000_041c: ;{ Some loop
 jr jr_000_041c ;}
 
 jr_000_0467:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_046c:
@@ -569,7 +569,7 @@ mode_selectMode: ;{
     ldh [rLCDC], a
 
 .loop: ;{
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld hl, hInputRisingEdge
     bit PADB_START, [hl]
@@ -577,7 +577,7 @@ mode_selectMode: ;{
 
     call selectMode_handleInput ;$5fed
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     .waitLoop:
@@ -636,7 +636,7 @@ mode_soundTest: ;{ 00:04F5
     xor a
     ld [vBlank_updateBuffer], a
     ld [vBlank_updateBufferIndex], a
-    ld [$cb00], a
+    ld [vBlank_updateFlag], a
     
     xor a
     ldh [rIF], a
@@ -650,7 +650,7 @@ mode_soundTest: ;{ 00:04F5
     ldh [rLCDC], a
 
 .loop: ;{ 00:054D - Sound test loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     
     ldh a, [hInputRisingEdge]
@@ -679,7 +679,7 @@ mode_soundTest: ;{ 00:04F5
         call playSound
     .endIf:
 
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     .waitLoop:
@@ -698,7 +698,7 @@ soundTest_songList: ; 00:058A
 
 
 Jump_000_0595:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_059a:
@@ -744,7 +744,7 @@ Jump_000_05a3:
     popBank
 
 jr_000_05f1:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0b2]
     and a
@@ -775,7 +775,7 @@ jr_000_05f1:
     popBank
     
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0641:
@@ -794,7 +794,7 @@ stage_cutsceneList: ; 00:064C
 
 Jump_000_065c:
 jr_000_065c:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0661:
@@ -820,7 +820,7 @@ Jump_000_0673: ; Start level
     ldh [$bc], a
     ld [vBlank_updateBuffer], a
     ld [vBlank_updateBufferIndex], a
-    ld [$cb00], a
+    ld [vBlank_updateFlag], a
     ld a, $25
     call draw_fillTilemap
     ld a, [currentLevel]
@@ -889,7 +889,7 @@ jr_000_06c4:
     ldh [rLCDC], a
 
 jr_000_0708: ;{ Some game loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ldh a, [hInputRisingEdge]
     and $0b
@@ -902,7 +902,7 @@ jr_000_0708: ;{ Some game loop
     cp $3f
         jr z, jr_000_072e
 
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0723:
@@ -916,7 +916,7 @@ jr_000_0708: ;{ Some game loop
 jr jr_000_0708 ;}
 
 jr_000_072e:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0733:
@@ -935,7 +935,7 @@ jr_000_072e:
     ld [$c1a3], a
 
 jr_000_0749: ;{ Another game loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ldh a, [hInputRisingEdge]
     and $0b
@@ -954,7 +954,7 @@ jr_000_0749: ;{ Another game loop
     call loadLevel_drawPlayer
     call $4c73
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0776:
@@ -988,7 +988,7 @@ jr_000_0781:
     call loadLevel_undrawReadyText
     xor a
     ld [$c0be], a
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_07a9:
@@ -1002,7 +1002,7 @@ jr_000_0781:
 
 mode_mainGame_loop: ;{ 00:07B2 Main game loop ?
     
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     
     call mainGame_pauseHandler
@@ -1075,7 +1075,7 @@ mode_mainGame_loop: ;{ 00:07B2 Main game loop ?
             jr nz, jr_000_0845
     jr_000_0834:
 
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0839:
@@ -1091,7 +1091,7 @@ jp mode_mainGame_loop ;}
 
 Jump_000_0845:
 jr_000_0845:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_084a:
@@ -1112,7 +1112,7 @@ jr_000_0845:
     call playSound
 
 jr_000_0865: ;{
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0bd]
     sub $01
@@ -1126,7 +1126,7 @@ jr_000_0865: ;{
     and a
     call nz, $4758
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_088b:
@@ -1166,7 +1166,7 @@ Jump_000_08b5:
 
 Jump_000_08bf:
     call Call_000_267e
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_08c7:
@@ -1184,7 +1184,7 @@ Jump_000_08bf:
     call z, Call_000_3443
 
 jr_000_08da:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0c9]
     bit 7, a
@@ -1233,7 +1233,7 @@ jr_000_0926:
 
 jr_000_0934:
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_093c:
@@ -1275,7 +1275,7 @@ jp Jump_000_065c
 
 
 jr_000_0975:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_097a:
@@ -1296,7 +1296,7 @@ jr_000_0975:
     call playSound
 
 jr_000_0995:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0f0]
     sub $01
@@ -1311,7 +1311,7 @@ jr_000_0995:
     call Call_000_1397
     call Call_000_135e
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_09bc:
@@ -1325,7 +1325,7 @@ jr_000_0995:
     jr jr_000_0995
 
 Jump_000_09c7:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_09cc:
@@ -1339,7 +1339,7 @@ Jump_000_09c7:
     call Call_000_1391
 
 jr_000_09d8:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0ca]
     and a
@@ -1348,7 +1348,7 @@ jr_000_09d8:
     call Call_000_1397
     call Call_000_135e
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_09f1:
@@ -1362,7 +1362,7 @@ jr_000_09d8:
     jr jr_000_09d8
 
 Jump_000_09fc:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0a01:
@@ -1383,7 +1383,7 @@ Jump_000_09fc:
     call playSound
 
 jr_000_0a1c:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0f0]
     sub $01
@@ -1402,7 +1402,7 @@ jr_000_0a1c:
     bit 7, a
     call nz, Call_000_13f8
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0a4e:
@@ -1417,7 +1417,7 @@ jr jr_000_0a1c
 
 mode_gameOver: ;{ 00:0A59
 .prep: ;{
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     .waitLoop_A:
@@ -1469,7 +1469,7 @@ mode_gameOver: ;{ 00:0A59
 ;}
 
 .loop: ;{ 00:0AA9
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ldh a, [hInputRisingEdge]
     bit PADB_START, a
@@ -1477,7 +1477,7 @@ mode_gameOver: ;{ 00:0A59
 
     call gameOver_handleInputAndSprite
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     .waitLoop_B:
@@ -1491,7 +1491,7 @@ mode_gameOver: ;{ 00:0A59
 jr .loop ;}
 
 .continueOrExit:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     .waitLoop_C:
@@ -1548,7 +1548,7 @@ jr .loop ;}
 ; Prep ending
 Jump_000_0b3a:
     call updateTopScore
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0b42:
@@ -1574,7 +1574,7 @@ Jump_000_0b3a:
     popBank
 
 jr_000_0b76: ;{ Ending cutscene loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0b2]
     and a
@@ -1585,7 +1585,7 @@ jr_000_0b76: ;{ Ending cutscene loop
     popBank
 
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0ba0:
@@ -1599,7 +1599,7 @@ jr_000_0b76: ;{ Ending cutscene loop
 jr jr_000_0b76 ;}
 
 jr_000_0bab:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0bb0:
@@ -1622,7 +1622,7 @@ jr_000_0bab:
     popBank
 
 jr_000_0bdc: ;{ End credits loop
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0b2]
     and a
@@ -1633,7 +1633,7 @@ jr_000_0bdc: ;{ End credits loop
     popBank
 
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0c06:
@@ -1647,7 +1647,7 @@ jr_000_0bdc: ;{ End credits loop
 jr jr_000_0bdc ;}
 
 jr_000_0c11:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0c16:
@@ -1665,7 +1665,7 @@ jr_000_0c11:
     call Call_000_30dc
 
 jr_000_0c2c: ;{ Another ending loop?
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     res 7, [hl]
     ld a, [$c0f0]
     sub $01
@@ -1682,7 +1682,7 @@ jr_000_0c2c: ;{ Another ending loop?
     popBank
     
     call oam_clearUnused
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0c64:
@@ -1696,7 +1696,7 @@ jr_000_0c2c: ;{ Another ending loop?
 jr jr_000_0c2c ;}
 
 jr_000_0c6f:
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     set 7, [hl]
 
     jr_000_0c74:
@@ -1729,7 +1729,7 @@ VBlankHandler: ;{ 00:0C9C
     push bc
     push de
     push hl
-    ld a, [$cb00]
+    ld a, [vBlank_updateFlag]
     bit 7, a
         jp z, Jump_000_0de6
 
@@ -1754,7 +1754,7 @@ VBlankHandler: ;{ 00:0C9C
         call z, Call_000_0f34
         
         
-    ld hl, $cb00
+    ld hl, vBlank_updateFlag
     bit 7, [hl]
     jr z, .endIf_B
         ld de, vBlank_updateBuffer
@@ -2176,72 +2176,75 @@ loadStringList: ;{ Not the entry point
         inc de
         ld a, [de]
         inc de
-        call Call_000_0ef9
+        call drawOneString
       .call: ; 00:0EF3 - Entry point
         ld a, [de]
         cp $00
     jr nz, .loop
 ret ;}
 
-
-Call_000_0ef9: ;{ 00:0EF9
+drawOneString: ;{ 00:0EF9
     push af
-    and $3f
-    ld b, a
+        and %00111111 ; $3F
+        ld b, a
     pop af
+    ; Rotate top two bits to bottom
     rlca
     rlca
-    and $03
-        jr z, jr_000_0f0c
-    dec a
-        jr z, jr_000_0f13
-    dec a
-        jr z, jr_000_0f1a
-    jr jr_000_0f27
+    ; Different cases depending on the top two bits
+    and %00000011 ; Case 0
+        jr z, .case_horizontal
+    dec a ; Case 1 ($40)
+        jr z, .case_fillHorizontal
+    dec a ; Case 2 ($80)
+        jr z, .case_vertical
+    jr .case_fillVertical ; Case 3 ($C0)
 
-    jr_000_0f0c:
+    .case_horizontal: ; 00:0F0C
+        .loop_horizontal:
+            ld a, [de]
+            ld [hl+], a
+            inc de
+            dec b
+        jr nz, .loop_horizontal
+    ret
+
+    .case_fillHorizontal:
         ld a, [de]
-        ld [hl+], a
         inc de
-        dec b
-    jr nz, jr_000_0f0c
-ret
+    
+        .loop_fillHorizontal:
+            ld [hl+], a
+            dec b
+        jr nz, .loop_fillHorizontal
+    ret
 
-jr_000_0f13:
-    ld a, [de]
-    inc de
+    .case_vertical:
+        .loop_vertical:
+            ld a, [de]
+            ld [hl], a
+            inc de
+            ld a, b
+            ld bc, $0020
+            add hl, bc
+            ld b, a
+            dec b
+        jr nz, .loop_vertical
+    ret
 
-    jr_000_0f15:
-        ld [hl+], a
-        dec b
-    jr nz, jr_000_0f15
-ret
-
-
-    jr_000_0f1a:
-        ld a, [de]
-        ld [hl], a
+    .case_fillVertical:
+        .loop_fillVertical:
+            ld a, [de]
+            ld [hl], a
+            ld a, b
+            ld bc, $0020
+            add hl, bc
+            ld b, a
+            dec b
+        jr nz, .loop_fillVertical
         inc de
-        ld a, b
-        ld bc, $0020
-        add hl, bc
-        ld b, a
-        dec b
-    jr nz, jr_000_0f1a
-ret
-
-
-    jr_000_0f27:
-        ld a, [de]
-        ld [hl], a
-        ld a, b
-        ld bc, $0020
-        add hl, bc
-        ld b, a
-        dec b
-    jr nz, jr_000_0f27
-    inc de
-ret ;}
+    ret
+;}
 
 Call_000_0f34: ;{ 00:0F34
     ld a, [$c0c1]
@@ -9204,22 +9207,22 @@ Call_000_3a49:
     ld a, [$c0ee]
     ld d, a
     cp $e0
-    ret nc
+        ret nc
 
     ld a, $98
     ld [hl+], a
     ld a, [$c0ec]
     ld [hl+], a
-    ld a, $90
+    ld a, $80 | $10 ; $90
     ld [hl+], a
     ld b, $10
 
-jr_000_3a6a:
-    ld a, [de]
-    inc de
-    ld [hl+], a
-    dec b
-    jr nz, jr_000_3a6a
+    .loop:
+        ld a, [de]
+        inc de
+        ld [hl+], a
+        dec b
+    jr nz, .loop
 
     xor a
     ld [hl+], a
@@ -9234,7 +9237,7 @@ jr_000_3a6a:
     add $01
     and $5f
     ld [$c0ec], a
-    ret
+ret
 
 
 Call_000_3a8d:
@@ -9405,4 +9408,4 @@ Call_000_3b3b:
     ld [hl], a
     ret
 
-
+freespace_bank0:

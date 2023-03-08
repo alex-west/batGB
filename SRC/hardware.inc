@@ -348,14 +348,14 @@ rBCPD = $FF69
 
 
 ; --
-; -- BCPS ($FF6A)
+; -- OCPS ($FF6A)
 ; -- Object Color Palette Specification (R/W)
 ; --
 rOCPS = $FF6A
 
 
 ; --
-; -- BCPD ($FF6B)
+; -- OCPD ($FF6B)
 ; -- Object Color Palette Data (R/W)
 ; --
 rOCPD = $FF6B

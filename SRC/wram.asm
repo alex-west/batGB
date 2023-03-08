@@ -72,7 +72,7 @@ weaponLevel = $C1A2 ; Batman's onscreen projectile limit
 
 ; $C800 - $153 bytes - Audio RAM??
 
-; $CB00 - VBlank Flag
+vBlank_updateFlag = $CB00 ; VBlank Flag
 vBlank_updateBufferIndex = $CB01 ; VBlank update index
 vBlank_updateBuffer = $CB02 ; VBlank VRAM updates ($HI, $LO, $LEN, bytes...)
 
