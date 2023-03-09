@@ -856,13 +856,13 @@ Jump_000_0673: ; Start level
 jr_000_06c4:
     ld a, [currentLevel]
     cp $0b
-    jr nz, jr_000_06d0
+    jr nz, .endIf
         ld a, $40
         ld [$c0c5], a
-    jr_000_06d0:
+    .endIf:
 
     call loadLevel_drawHud
-    call Call_000_149f ; Draw level
+    call loadLevel_drawLevel ; Draw level
     call loadLevel_drawLevelName
     ld a, $40
     ldh [$9a], a
@@ -3164,9 +3164,9 @@ devMessage_B: ; 00:1487 - Developer Message
     db $20, $BA, $DD, $CB, $DE, $B6, $DE, $B6, $B6, $D9, $3F, $3F
 
 ; Called when loading level
-Call_000_149f: ;{
+loadLevel_drawLevel: ;{ 00:149F
     ld a, [$c0ea]
-    call Call_000_14c4
+    call loadLevel_drawScreen
     ld a, [$c0ea]
     ld b, a
     ld a, $56
@@ -3184,7 +3184,7 @@ Call_000_149f: ;{
 ret ;}
 
 ; Draw level starting at screen A
-Call_000_14c4: ;{ 00:14C4
+loadLevel_drawScreen: ;{ 00:14C4
     sla a
     ld d, a
     ld e, $00
@@ -3195,12 +3195,12 @@ Call_000_14c4: ;{ 00:14C4
     ld hl, $9840
     ld b, $20
 
-    jr_000_14d4:
+    .rowLoop:
         push bc
         push hl
         ld b, $10
     
-        jr_000_14d8:
+        .columnLoop:
             ld a, [de]
             ld [hl], a
             inc de
@@ -3209,13 +3209,13 @@ Call_000_14c4: ;{ 00:14C4
             add hl, bc
             ld b, a
             dec b
-        jr nz, jr_000_14d8
+        jr nz, .columnLoop
     
         pop hl
         pop bc
         inc hl
         dec b
-    jr nz, jr_000_14d4
+    jr nz, .rowLoop
 ret ;}
 
 ; Pause related functions {
@@ -8656,7 +8656,7 @@ jr_000_373c:
     ld a, d
     and $f8
     cp c
-    call nz, Call_000_3a49
+    call nz, draw_prepLevelColumnUpdate
 
 Call_000_3750:
     ldh a, [$8d]
@@ -8842,7 +8842,7 @@ Call_000_3848:
     ld a, d
     and $f8
     cp c
-    call nz, Call_000_3a49
+    call nz, draw_prepLevelColumnUpdate
     ldh a, [$99]
     ld d, a
     ldh a, [$91]
@@ -9196,7 +9196,7 @@ jr_000_3a43:
     ret
 
 
-Call_000_3a49:
+draw_prepLevelColumnUpdate: ;{ 00:3A49
     ld d, $00
     ld a, [vBlank_updateBufferIndex]
     ld e, a
@@ -9237,7 +9237,7 @@ Call_000_3a49:
     add $01
     and $5f
     ld [$c0ec], a
-ret
+ret ;}
 
 
 Call_000_3a8d:
