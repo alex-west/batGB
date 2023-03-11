@@ -22,29 +22,29 @@ SECTION "ROM Bank $007", ROMX[$4000], BANK[$7]
                                              ; $0D: (END)
 
 metatiles_gotham: incbin "src/levels/metatiles_gotham_city.bin"
-level_gotham1: incbin "packed/level_01_0x01C334.bin"
-level_gotham2: incbin "packed/level_05_0x01C6B5.bin"
+level_gotham1: incbin "packed/level_01_gotham1.bin"
+level_gotham2: incbin "packed/level_05_gotham2.bin"
 
 metatiles_factory: incbin "src/levels/metatiles_factory.bin"
-level_factory1: incbin "packed/level_02_0x01CE30.bin"
-level_factory2: incbin "packed/level_03_0x01D27E.bin"
+level_factory1: incbin "packed/level_02_factory1.bin"
+level_factory2: incbin "packed/level_03_factory2.bin"
 
 metatiles_museum: incbin "src/levels/metatiles_museum.bin"
-level_museum1: incbin "packed/level_06_0x01D9DC.bin"
-level_museum2: incbin "packed/level_07_0x01DE3E.bin"
+level_museum1: incbin "packed/level_06_museum1.bin"
+level_museum2: incbin "packed/level_07_museum2.bin"
 
 metatiles_batwing: incbin "src/levels/metatiles_batwing.bin"
-level_batwing: incbin "packed/level_08_0x01E266.bin"
+level_batwing: incbin "packed/level_08_batwing.bin"
 
 metatiles_cathedral: incbin "src/levels/metatiles_cathedral.bin"
-level_cathedral1: incbin "packed/level_0A_0x01E87B.bin"
-level_cathedral2: incbin "packed/level_0B_0x01ED3B.bin"
+level_cathedral1: incbin "packed/level_0A_cathedral1.bin"
+level_cathedral2: incbin "packed/level_0B_cathedral2.bin"
 
 metatiles_vs_jack: incbin "src/levels/metatiles_vs_jack.bin"
-level_vs_jack: incbin "packed/level_04_0x01F2F8.bin"
+level_vs_jack: incbin "packed/level_04_vsJack.bin"
 
 metatiles_vs_joker: incbin "src/levels/metatiles_vs_joker.bin"
-level_vs_joker: incbin "packed/level_0C_0x01F4F8.bin"
+level_vs_joker: incbin "packed/level_0C_vsJoker.bin"
 
 bank7_freespace:
 

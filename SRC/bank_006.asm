@@ -8,21 +8,21 @@ SECTION "ROM Bank $006", ROMX[$4000], BANK[$6]
 ; Enemy Data Pointers (Bank 6)
     ; Boss stages don't use these pointers
     ; And batwing stages don't seem to either
-    dw enemyData_418A ; $00: broken Gotham City 1 [cutscene 1 graphics]
-    dw enemyData_418A ; $01: Gotham City (1-1) [cutscene 1]
-    dw enemyData_4299 ; $02: Chemical Factory (1-2)
-    dw enemyData_43E1 ; $03: Chemical Factory (1-3)
-    dw enemyData_418A ; $04: Batman vs Jack (1-4)
-    dw enemyData_4533 ; $05: Gotham City (2-1) [cutscene 2]
-    dw enemyData_468F ; $06: Flugalheim Museum (2-2)
-    dw enemyData_47E4 ; $07: Flugalheim Museum (2-3)
-    dw enemyData_418A ; $08: Batwing Stage (3-1) [cutscene 3]
-    dw enemyData_4299 ; $09: Batwing Stage (3-2)
-    dw enemyData_494A ; $0A: Gotham Cathedral (4-1)
-    dw enemyData_4B53 ; $0B: Gotham Cathedral (4-2)
-    dw enemyData_418A ; $0C: Batman vs Joker (4-3)
-    dw enemyData_4299 ; $0D: Ending cutscene (END)
-    dw enemyData_418A
+    dw enemyData_noneA      ; $00: broken Gotham City 1 [cutscene 1 graphics]
+    dw enemyData_gotham1    ; $01: Gotham City (1-1) [cutscene 1]
+    dw enemyData_factory1   ; $02: Chemical Factory (1-2)
+    dw enemyData_factory2   ; $03: Chemical Factory (1-3)
+    dw enemyData_noneA      ; $04: Batman vs Jack (1-4)
+    dw enemyData_gotham2    ; $05: Gotham City (2-1) [cutscene 2]
+    dw enemyData_museum1    ; $06: Flugalheim Museum (2-2)
+    dw enemyData_museum2    ; $07: Flugalheim Museum (2-3)
+    dw enemyData_noneA      ; $08: Batwing Stage (3-1) [cutscene 3]
+    dw enemyData_noneB      ; $09: Batwing Stage (3-2)
+    dw enemyData_cathedral1 ; $0A: Gotham Cathedral (4-1)
+    dw enemyData_cathedral2 ; $0B: Gotham Cathedral (4-2)
+    dw enemyData_noneA      ; $0C: Batman vs Joker (4-3)
+    dw enemyData_noneB      ; $0D: Ending cutscene (END)
+    dw enemyData_noneA
 
 bank_06_data: ; $401E
 ; Enemy headers 1
@@ -121,14 +121,16 @@ bank_06_data: ; $401E
     db $14, $F8, $25, $26, $27
 
 ; Enemy Data in Bank 6
-enemyData_418A: include "levels/enemyData_418A.asm" ; Gotham 1 (1-1)
-enemyData_4299: include "levels/enemyData_4299.asm"
-enemyData_43E1: include "levels/enemyData_43E1.asm"
-enemyData_4533: include "levels/enemyData_4533.asm"
-enemyData_468F: include "levels/enemyData_468F.asm"
-enemyData_47E4: include "levels/enemyData_47E4.asm"
-enemyData_494A: include "levels/enemyData_494A.asm"
-enemyData_4B53: include "levels/enemyData_4B53.asm"
+enemyData_noneA:
+enemyData_gotham1:    include "levels/enemyData_gotham1.asm" ; Gotham 1 (1-1)
+enemyData_noneB:
+enemyData_factory1:   include "levels/enemyData_factory1.asm"
+enemyData_factory2:   include "levels/enemyData_factory2.asm"
+enemyData_gotham2:    include "levels/enemyData_gotham2.asm"
+enemyData_museum1:    include "levels/enemyData_museum1.asm"
+enemyData_museum2:    include "levels/enemyData_museum2.asm"
+enemyData_cathedral1: include "levels/enemyData_cathedral1.asm"
+enemyData_cathedral2: include "levels/enemyData_cathedral2.asm"
 
 
 SECTION "ROM Bank $006 pt2", ROMX[$6800], BANK[$6]
